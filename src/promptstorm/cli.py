@@ -111,32 +111,86 @@ def run_debate(root: Path) -> int:
     if session_has_model_error(session):
         print("\nA model call failed during the debate; saving the partial transcript.")
 
-    verdict = prompt_for_verdict()
+    final_support = run_control_loop(
+        engine=engine,
+        session=session,
+        config=config,
+        on_turn_start=on_turn_start,
+        on_token=on_token,
+        on_turn_end=on_turn_end,
+    )
     writer = ReportWriter(provider=provider, reports_dir=root / "reports")
-    print("\nWriting report...")
-    report_path, report_tokens, used_fallback = write_report_safely(writer, session, verdict, config)
+    print("\nOutputting conclusion...\n")
+    conclusion, report_tokens, used_fallback = write_conclusion_safely(writer, session, final_support, config)
+    print(conclusion)
     if used_fallback:
-        print("Report model failed; saved a local fallback transcript report instead.")
-    session.winner = verdict
-    session.report_path = str(report_path)
+        print("\nReport model failed; printed a local fallback transcript summary instead.")
+    session.winner = final_support
+    session.report_path = ""
     session.tokens_used += report_tokens
 
     AuditStore(root / "data").record_session(session)
-    print(f"Report: {report_path}")
     print("Audit: data/debate_history.csv and data/debate_turns.jsonl")
     return 0
 
 
-def prompt_for_verdict() -> str:
-    print("\nJudge:")
-    print("[A] A wins")
-    print("[B] B wins")
-    print("[C] Tie")
+def run_control_loop(
+    engine: DebateEngine,
+    session,
+    config,
+    on_turn_start,
+    on_token,
+    on_turn_end,
+) -> str:
+    final_support = "TIE"
+    while True:
+        print("\nControl:")
+        print("[A] 我目前支持 A，讓雙方再辯 N 回合")
+        print("[B] 我目前支持 B，讓雙方再辯 N 回合")
+        print("[R] 我目前都不支持，讓雙方再辯 N 回合")
+        print("[I] 我想補充一句話")
+        print("[O] 輸出結論並結束")
+        choice = input("Your choice > ").strip().upper()
+        if choice in {"A", "B", "R"}:
+            final_support = "TIE" if choice == "R" else choice
+            rounds = prompt_for_round_count()
+            engine.continue_debate(
+                session=session,
+                config=config,
+                human_support=final_support,
+                rounds=rounds,
+                on_turn_start=on_turn_start,
+                on_token=on_token,
+                on_turn_end=on_turn_end,
+            )
+            if session_has_model_error(session):
+                print("\nA model call failed during the debate; you can add input or output the current transcript.")
+        elif choice == "I":
+            human_text = input("Your input > ").strip()
+            if human_text:
+                engine.add_human_input(session, human_text)
+        elif choice == "O":
+            return final_support
+        else:
+            print("Please enter A, B, R, I, or O.")
+
+
+def prompt_for_round_count() -> int:
     while True:
         try:
-            return normalize_verdict(input("Your vote > "))
+            return parse_round_count(input("How many rounds? [1] > "))
         except ValueError:
-            print("Please enter A, B, or C.")
+            print("Please enter a positive integer.")
+
+
+def parse_round_count(raw_value: str) -> int:
+    value = raw_value.strip()
+    if not value:
+        return 1
+    rounds = int(value)
+    if rounds < 1:
+        raise ValueError("Round count must be positive.")
+    return rounds
 
 
 def write_report_safely(writer, session, verdict: str, config) -> tuple[Path, int, bool]:
@@ -147,6 +201,15 @@ def write_report_safely(writer, session, verdict: str, config) -> tuple[Path, in
         reason = f"{exc.__class__.__name__}: {exc}"
         report_path = writer.write_fallback_report(session, verdict, reason)
         return report_path, 0, True
+
+
+def write_conclusion_safely(writer, session, verdict: str, config) -> tuple[str, int, bool]:
+    try:
+        conclusion, report_tokens = writer.generate_conclusion(session, verdict, config)
+        return conclusion, report_tokens, False
+    except Exception as exc:
+        reason = f"{exc.__class__.__name__}: {exc}"
+        return writer.build_fallback_conclusion(session, verdict, reason), 0, True
 
 
 def session_has_model_error(session) -> bool:

@@ -75,6 +75,34 @@ class ReporterTests(unittest.TestCase):
             self.assertIn("B argues from action.", prompt)
             self.assertEqual(provider.calls[0]["model"], "model-report")
 
+    def test_generate_conclusion_returns_text_without_writing_report_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            provider = FakeReportProvider()
+            writer = ReportWriter(provider=provider, reports_dir=Path(tmp))
+            config = PromptStormConfig(
+                api_key="key",
+                player_a_model="model-a",
+                player_b_model="model-b",
+                report_model="model-report",
+            )
+            session = DebateSession(
+                session_id="session-terminal",
+                timestamp="2026-06-05T00:00:00+08:00",
+                player_a="A",
+                player_b="B",
+                topic="Terminal output",
+                winner=None,
+                tokens_used=0,
+                report_path=None,
+                turns=[],
+            )
+
+            text, tokens = writer.generate_conclusion(session, "B", config)
+
+            self.assertIn("Final Report", text)
+            self.assertEqual(tokens, 15)
+            self.assertFalse((Path(tmp) / "session-terminal.md").exists())
+
     def test_fallback_report_writes_verdict_and_transcript_without_api(self):
         with tempfile.TemporaryDirectory() as tmp:
             provider = FakeReportProvider()

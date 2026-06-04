@@ -43,6 +43,30 @@ class ReportWriter:
         )
         return report_path, response.tokens_used
 
+    def generate_conclusion(
+        self,
+        session: DebateSession,
+        verdict: str,
+        config: PromptStormConfig,
+        on_token: Callable[[str], None] | None = None,
+    ) -> tuple[str, int]:
+        normalized_verdict = normalize_verdict(verdict)
+        response = self.provider.complete_stream(
+            model=config.report_model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are PromptStorm's terminal conclusion writer. The human user controls the debate. "
+                        "Do not invent missing arguments. Produce a concise, useful conclusion grounded only in the transcript."
+                    ),
+                },
+                {"role": "user", "content": self._build_prompt(session, normalized_verdict)},
+            ],
+            on_token=on_token,
+        )
+        return response.text.strip(), response.tokens_used
+
     def write_fallback_report(self, session: DebateSession, verdict: str, reason: str) -> Path:
         normalized_verdict = normalize_verdict(verdict)
         self.reports_dir.mkdir(parents=True, exist_ok=True)
@@ -60,6 +84,19 @@ class ReportWriter:
             encoding="utf-8",
         )
         return report_path
+
+    def build_fallback_conclusion(self, session: DebateSession, verdict: str, reason: str) -> str:
+        normalized_verdict = normalize_verdict(verdict)
+        return (
+            _metadata_header(session, normalized_verdict)
+            + "\n"
+            + "Report Generation Status: Terminal Fallback\n\n"
+            + "## Why This Conclusion Was Generated Locally\n\n"
+            + f"The conclusion model failed before producing a final summary: `{reason}`\n\n"
+            + "The human position and full debate transcript are shown below.\n\n"
+            + "## Transcript\n\n"
+            + _format_transcript(session)
+        )
 
     def _build_prompt(self, session: DebateSession, verdict: str) -> str:
         return (

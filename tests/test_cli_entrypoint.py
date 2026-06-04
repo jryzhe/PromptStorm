@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from promptstorm.cli import session_has_model_error, write_report_safely
+from promptstorm.cli import parse_round_count, session_has_model_error, write_conclusion_safely
 from promptstorm.models import DebateSession, DebateTurn, PromptStormConfig
 
 
@@ -17,11 +17,18 @@ class FailingWriter:
     def write_report(self, session, verdict, config):
         raise RuntimeError("RateLimitError: 429")
 
+    def generate_conclusion(self, session, verdict, config, on_token=None):
+        raise RuntimeError("RateLimitError: 429")
+
     def write_fallback_report(self, session, verdict, reason):
         self.fallback_reason = reason
         path = self.reports_dir / f"{session.session_id}.md"
         path.write_text("fallback report", encoding="utf-8")
         return path
+
+    def build_fallback_conclusion(self, session, verdict, reason):
+        self.fallback_reason = reason
+        return "fallback terminal conclusion"
 
 
 class CliEntrypointTests(unittest.TestCase):
@@ -42,7 +49,7 @@ class CliEntrypointTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("No debates recorded yet.", result.stdout)
 
-    def test_write_report_safely_returns_fallback_when_report_model_fails(self):
+    def test_write_conclusion_safely_returns_fallback_when_report_model_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
             writer = FailingWriter(Path(tmp))
             session = DebateSession(
@@ -59,12 +66,13 @@ class CliEntrypointTests(unittest.TestCase):
                 report_model="model-report",
             )
 
-            report_path, tokens, used_fallback = write_report_safely(writer, session, "A", config)
+            text, tokens, used_fallback = write_conclusion_safely(writer, session, "A", config)
 
             self.assertTrue(used_fallback)
             self.assertEqual(tokens, 0)
-            self.assertEqual(report_path.read_text(encoding="utf-8"), "fallback report")
+            self.assertEqual(text, "fallback terminal conclusion")
             self.assertIn("RateLimitError: 429", writer.fallback_reason)
+            self.assertFalse((Path(tmp) / "session-3.md").exists())
 
     def test_session_has_model_error_detects_failed_turn(self):
         session = DebateSession(
@@ -88,6 +96,14 @@ class CliEntrypointTests(unittest.TestCase):
         )
 
         self.assertTrue(session_has_model_error(session))
+
+    def test_parse_round_count_defaults_to_one_and_rejects_invalid_values(self):
+        self.assertEqual(parse_round_count(""), 1)
+        self.assertEqual(parse_round_count("3"), 3)
+        with self.assertRaises(ValueError):
+            parse_round_count("0")
+        with self.assertRaises(ValueError):
+            parse_round_count("abc")
 
 
 if __name__ == "__main__":

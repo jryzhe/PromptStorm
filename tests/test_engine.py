@@ -103,6 +103,60 @@ class EngineTests(unittest.TestCase):
         self.assertIn("A response 1", round_two_a_prompt)
         self.assertIn("B response 2", round_two_a_prompt)
 
+    def test_continue_debate_adds_rounds_with_human_support_context(self):
+        provider = FakeProvider()
+        config = PromptStormConfig(
+            api_key="key",
+            player_a_model="model-a",
+            player_b_model="model-b",
+            report_model="model-report",
+        )
+        engine = DebateEngine(provider=provider)
+        session = engine.run(
+            topic="Should we continue?",
+            player_a_persona="",
+            player_b_persona="",
+            config=config,
+            session_id="session-continue",
+        )
+
+        engine.continue_debate(
+            session=session,
+            config=config,
+            human_support="A",
+            rounds=2,
+        )
+
+        self.assertEqual([turn.round for turn in session.turns[-4:]], [4, 4, 5, 5])
+        self.assertEqual([turn.speaker for turn in session.turns[-4:]], ["A", "B", "A", "B"])
+        extension_prompt = provider.calls[6]["messages"][-1]["content"]
+        self.assertIn("Human currently supports A", extension_prompt)
+        self.assertIn("Round 3", extension_prompt)
+
+    def test_add_human_input_records_user_turn(self):
+        provider = FakeProvider()
+        config = PromptStormConfig(
+            api_key="key",
+            player_a_model="model-a",
+            player_b_model="model-b",
+            report_model="model-report",
+        )
+        engine = DebateEngine(provider=provider)
+        session = engine.run(
+            topic="Should we add context?",
+            player_a_persona="",
+            player_b_persona="",
+            config=config,
+            session_id="session-human-input",
+        )
+
+        engine.add_human_input(session, "請考慮成本限制。")
+
+        self.assertEqual(session.turns[-1].speaker, "USER")
+        self.assertEqual(session.turns[-1].persona, "Human")
+        self.assertEqual(session.turns[-1].model, "human")
+        self.assertEqual(session.turns[-1].response_text, "請考慮成本限制。")
+
     def test_clean_response_removes_common_polite_fillers(self):
         cleaned = clean_response("好的，我明白您的意思了。真正的重點是行動。")
 

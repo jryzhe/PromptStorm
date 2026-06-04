@@ -5,9 +5,9 @@ PromptStorm CLI runs a three-round terminal debate between two AI models through
 ## What It Does
 
 - Asks for two optional player personas and one topic.
-- Streams a three-round A/B debate in the terminal.
-- Lets the human user vote for A, B, or a tie.
-- Generates a Markdown report after the vote.
+- Streams an initial three-round A/B debate in the terminal.
+- Lets the human user steer the debate after round 3.
+- Outputs the final conclusion directly in the terminal.
 - Records debate history and turn-by-turn transcripts for stats.
 
 ## Requirements
@@ -77,14 +77,22 @@ Topic >
 
 You can leave the personas blank. In that case the CLI uses `Point of View A` and `Point of View B`.
 
-After three rounds, vote:
+After three rounds, PromptStorm opens the control panel:
 
 ```text
-Judge:
-[A] A wins
-[B] B wins
-[C] Tie
+Control:
+[A] 我目前支持 A，讓雙方再辯 N 回合
+[B] 我目前支持 B，讓雙方再辯 N 回合
+[R] 我目前都不支持，讓雙方再辯 N 回合
+[I] 我想補充一句話
+[O] 輸出結論並結束
 ```
+
+`A`, `B`, and `R` ask how many additional rounds to run. Press Enter to use the default of 1 round. The speaking order stays A then B, but the prompt tells both models where the human currently stands.
+
+`I` adds your own message to the transcript. The next model calls can use it as context.
+
+`O` generates the final conclusion and prints it directly in the terminal.
 
 Show saved stats:
 
@@ -101,13 +109,13 @@ python3 main.py debate
 
 ## Output Files
 
-Debates write session history to `data/debate_history.csv`, turn transcripts to `data/debate_turns.jsonl`, and reports to `reports/<session_id>.md`.
+Debates write session history to `data/debate_history.csv` and turn transcripts to `data/debate_turns.jsonl`.
 
 `data/debate_history.csv` stores one row per completed debate.
 
 `data/debate_turns.jsonl` stores each model response with session id, round number, speaker, persona, model, response text, token count, and timestamp.
 
-`reports/<session_id>.md` stores the final Markdown report generated after the human vote. If the report model is rate-limited or fails, PromptStorm saves a local fallback report with the human verdict and full transcript instead of losing the completed debate.
+The final conclusion is printed in the terminal. If the conclusion model is rate-limited or fails, PromptStorm prints a local fallback summary with the human position and full transcript instead of losing the completed debate.
 
 ## Testing
 
@@ -143,7 +151,7 @@ If the live debate fails with `RateLimitError: 429`, the project is reaching Ver
 
 If a player model is rate-limited during the debate, PromptStorm records the failed turn, stops the remaining rounds, and still lets you save the partial transcript.
 
-If the debate finishes but the report model is rate-limited, PromptStorm writes a local fallback report to `reports/<session_id>.md` and still records the debate in `data/debate_history.csv` and `data/debate_turns.jsonl`.
+If the debate finishes but the conclusion model is rate-limited, PromptStorm prints a local fallback conclusion and still records the debate in `data/debate_history.csv` and `data/debate_turns.jsonl`.
 
 If the CLI says the API key is missing, check that `.env` exists in the project root and contains:
 
