@@ -14,9 +14,9 @@ Create or edit `.env`:
 
 ```env
 AI_GATEWAY_API_KEY=your-vercel-ai-gateway-key
-PLAYER_A_MODEL=google/gemini-3-flash
-PLAYER_B_MODEL=anthropic/claude-sonnet-4.6
-REPORT_MODEL=anthropic/claude-sonnet-4.6
+PLAYER_A_MODEL=google/gemini-3.1-flash-lite
+PLAYER_B_MODEL=alibaba/qwen-3-32b
+REPORT_MODEL=openai/gpt-oss-120b
 ```
 
 ## Usage
