@@ -17,6 +17,7 @@ RESET = "\033[0m"
 CYAN = "\033[36m"
 MAGENTA = "\033[35m"
 BOLD = "\033[1m"
+TURN_DIVIDER = "-" * 72
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -87,10 +88,7 @@ def run_debate(root: Path) -> int:
     engine = DebateEngine(provider=provider)
 
     def on_turn_start(round_number: int, speaker: str, persona: str) -> None:
-        color = CYAN if speaker == "A" else MAGENTA
-        if speaker == "A":
-            print(f"\n{BOLD}Round {round_number}{RESET}")
-        print(f"{color}[{speaker}: {persona}]{RESET}")
+        print(format_turn_heading(round_number, speaker, persona))
 
     def on_token(speaker: str, token: str) -> None:
         color = CYAN if speaker == "A" else MAGENTA
@@ -191,6 +189,20 @@ def parse_round_count(raw_value: str) -> int:
     if rounds < 1:
         raise ValueError("Round count must be positive.")
     return rounds
+
+
+def format_turn_heading(round_number: int, speaker: str, persona: str) -> str:
+    color = CYAN if speaker == "A" else MAGENTA
+    lines = [""]
+    if speaker == "A":
+        lines.append(f"{BOLD}Round {round_number}{RESET}")
+    lines.extend(
+        [
+            f"{BOLD}{TURN_DIVIDER}{RESET}",
+            f"{color}[{speaker}: {persona}]{RESET}",
+        ]
+    )
+    return "\n".join(lines)
 
 
 def write_report_safely(writer, session, verdict: str, config) -> tuple[Path, int, bool]:

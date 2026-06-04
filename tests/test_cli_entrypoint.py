@@ -5,7 +5,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from promptstorm.cli import parse_round_count, session_has_model_error, write_conclusion_safely
+from promptstorm.cli import (
+    TURN_DIVIDER,
+    format_turn_heading,
+    parse_round_count,
+    session_has_model_error,
+    write_conclusion_safely,
+)
 from promptstorm.models import DebateSession, DebateTurn, PromptStormConfig
 
 
@@ -104,6 +110,13 @@ class CliEntrypointTests(unittest.TestCase):
             parse_round_count("0")
         with self.assertRaises(ValueError):
             parse_round_count("abc")
+
+    def test_turn_heading_includes_separator_before_each_model_response(self):
+        heading = format_turn_heading(2, "B", "Point of View B")
+
+        self.assertTrue(heading.startswith("\n"))
+        self.assertIn(TURN_DIVIDER, heading)
+        self.assertIn("[B: Point of View B]", heading)
 
 
 if __name__ == "__main__":
