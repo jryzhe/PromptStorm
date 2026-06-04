@@ -67,6 +67,18 @@ Run a debate:
 promptstorm debate
 ```
 
+Run a collaborative discussion:
+
+```bash
+promptstorm discussion
+```
+
+Run an in-character scenario dialogue:
+
+```bash
+promptstorm dialogue
+```
+
 The CLI will ask:
 
 ```text
@@ -75,9 +87,9 @@ Player B persona >
 Topic >
 ```
 
-You can leave the personas blank. In that case the CLI uses `Point of View A` and `Point of View B`.
+You can leave the personas blank. `debate` uses `Point of View A/B`, `discussion` uses `Perspective A/B`, and `dialogue` uses `Character A/B`.
 
-After three rounds, PromptStorm opens the control panel:
+After three rounds, PromptStorm opens the control panel. The labels change slightly by mode. Debate mode uses:
 
 ```text
 Control:
@@ -93,6 +105,12 @@ Control:
 `I` adds your own message to the transcript. The next model calls can use it as context.
 
 `O` generates the final conclusion and prints it directly in the terminal.
+
+`discussion` keeps A/B as personas or perspectives, but asks them to collaborate, compare tradeoffs, and synthesize a useful answer instead of attacking each other by default.
+
+`dialogue` treats A/B as characters in a scenario and asks them to speak naturally in character. Each model turn is constrained to one brief spoken reply from that character only, so the scene advances A then B rather than one model writing the whole script.
+
+PromptStorm also asks model turns and conclusions to use the same dominant language as your topic or latest human input. Persona names can be in another language without forcing the answer into that language.
 
 Show saved stats:
 

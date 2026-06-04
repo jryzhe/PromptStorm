@@ -72,6 +72,60 @@ class ReporterTests(unittest.TestCase):
         self.assertNotIn("Write a Markdown report", prompt)
         self.assertFalse(hasattr(writer, "write_report"))
 
+    def test_generate_conclusion_uses_discussion_mode_and_output_language(self):
+        provider = FakeConclusionProvider()
+        writer = ConclusionWriter(provider=provider)
+        config = PromptStormConfig(
+            api_key="key",
+            player_a_model="model-a",
+            player_b_model="model-b",
+            report_model="model-report",
+        )
+        session = DebateSession(
+            session_id="session-discussion",
+            timestamp="2026-06-05T00:00:00+08:00",
+            player_a="Steve Jobs",
+            player_b="Elon Musk",
+            topic="兩個創業者討論是否應該裁員，最後要收斂出一個決定。",
+            winner=None,
+            tokens_used=0,
+            turns=[],
+        )
+
+        writer.generate_conclusion(session, "TIE", config, mode="discussion")
+
+        system_prompt = provider.calls[0]["messages"][0]["content"]
+        user_prompt = provider.calls[0]["messages"][-1]["content"]
+        self.assertIn("Output language: Traditional Chinese.", system_prompt)
+        self.assertIn("synthesize shared ground", user_prompt)
+        self.assertIn("Human Direction: TIE", user_prompt)
+
+    def test_generate_conclusion_uses_dialogue_wrap_up_prompt(self):
+        provider = FakeConclusionProvider()
+        writer = ConclusionWriter(provider=provider)
+        config = PromptStormConfig(
+            api_key="key",
+            player_a_model="model-a",
+            player_b_model="model-b",
+            report_model="model-report",
+        )
+        session = DebateSession(
+            session_id="session-dialogue",
+            timestamp="2026-06-05T00:00:00+08:00",
+            player_a="A",
+            player_b="B",
+            topic="A and B talk in a late-night office.",
+            winner=None,
+            tokens_used=0,
+            turns=[],
+        )
+
+        writer.generate_conclusion(session, "A", config, mode="dialogue")
+
+        prompt = provider.calls[0]["messages"][-1]["content"]
+        self.assertIn("briefly wrap up what happened in the dialogue", prompt)
+        self.assertIn("Human Direction: A", prompt)
+
     def test_fallback_conclusion_is_terminal_text_with_transcript(self):
         provider = FakeConclusionProvider()
         writer = ConclusionWriter(provider=provider)

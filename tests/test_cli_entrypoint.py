@@ -20,10 +20,10 @@ class FailingWriter:
     def __init__(self):
         self.fallback_reason = None
 
-    def generate_conclusion(self, session, verdict, config, on_token=None):
+    def generate_conclusion(self, session, verdict, config, mode="debate", on_token=None):
         raise RuntimeError("RateLimitError: 429")
 
-    def build_fallback_conclusion(self, session, verdict, reason):
+    def build_fallback_conclusion(self, session, verdict, reason, mode="debate"):
         self.fallback_reason = reason
         return "fallback terminal conclusion"
 
@@ -34,14 +34,15 @@ class CliEntrypointTests(unittest.TestCase):
         env = os.environ.copy()
         env.pop("PYTHONPATH", None)
 
-        result = subprocess.run(
-            [sys.executable, "main.py", "--stats"],
-            cwd=root,
-            env=env,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            result = subprocess.run(
+                [sys.executable, str(root / "main.py"), "--stats"],
+                cwd=tmp,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("No debates recorded yet.", result.stdout)
@@ -72,6 +73,13 @@ class CliEntrypointTests(unittest.TestCase):
 
     def test_cli_has_no_report_file_safety_path(self):
         self.assertFalse(hasattr(cli_module, "write_report_safely"))
+
+    def test_parser_exposes_discussion_and_dialogue_commands(self):
+        parser = cli_module.build_parser()
+
+        self.assertEqual(parser.parse_args(["debate"]).command, "debate")
+        self.assertEqual(parser.parse_args(["discussion"]).command, "discussion")
+        self.assertEqual(parser.parse_args(["dialogue"]).command, "dialogue")
 
     def test_session_has_model_error_detects_failed_turn_status(self):
         session = DebateSession(

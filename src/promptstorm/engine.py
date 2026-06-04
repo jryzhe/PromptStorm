@@ -5,6 +5,7 @@ from typing import Callable
 from uuid import uuid4
 
 from .models import DebateSession, DebateTurn, PromptStormConfig
+from .modes import ModeProfile, detect_output_language, format_language_instruction, get_mode_profile
 from .provider import ModelProvider
 
 
@@ -23,9 +24,10 @@ DEBATE_SPEAKERS = {"A", "B"}
 
 
 class DebateEngine:
-    def __init__(self, provider: ModelProvider, rounds: int = 3):
+    def __init__(self, provider: ModelProvider, rounds: int = 3, mode: str = "debate"):
         self.provider = provider
         self.rounds = rounds
+        self.mode_profile = get_mode_profile(mode)
 
     def run(
         self,
@@ -41,8 +43,8 @@ class DebateEngine:
         session = DebateSession(
             session_id=session_id or _new_session_id(),
             timestamp=_now(),
-            player_a=_display_persona(player_a_persona, "A"),
-            player_b=_display_persona(player_b_persona, "B"),
+            player_a=_display_persona(player_a_persona, "A", self.mode_profile),
+            player_b=_display_persona(player_b_persona, "B", self.mode_profile),
             topic=topic,
         )
 
@@ -123,6 +125,15 @@ class DebateEngine:
                             opponent=session.player_b if speaker == "A" else session.player_a,
                             transcript=_format_transcript(session.turns),
                             human_support=human_support,
+                            profile=self.mode_profile,
+                            output_language=detect_output_language(
+                                session.topic,
+                                *[
+                                    turn.response_text
+                                    for turn in session.turns
+                                    if turn.speaker == "USER"
+                                ],
+                            ),
                         ),
                         on_token=(lambda token, active=speaker: on_token(active, token)) if on_token else None,
                     )
@@ -183,50 +194,37 @@ def _build_messages(
     opponent: str,
     transcript: str,
     human_support: str | None = None,
+    profile: ModeProfile | None = None,
+    output_language: str = "English",
 ) -> list[dict[str, str]]:
+    active_profile = profile or get_mode_profile("debate")
+    default_persona = active_profile.default_persona(speaker)
+    if persona == default_persona:
+        identity = f"You are {persona}. You are not roleplaying a famous person."
+    else:
+        identity = f"You are {active_profile.identity_label} {speaker}: {persona}."
     system = (
-        f"You are Player {speaker}: {persona}. Debate the topic with a concrete, useful, "
-        "high-signal argument. Avoid polite filler, disclaimers, and generic summaries. "
-        "Respond in the same language as the user's topic."
+        f"{identity} {active_profile.system_instruction} "
+        f"{format_language_instruction(output_language)}"
     )
-    if persona.startswith("Point of View"):
-        system = (
-            f"You are {persona}. You are not roleplaying a famous person. Debate the topic "
-            "from a clear, concrete perspective. Avoid polite filler, disclaimers, and generic summaries. "
-            "Respond in the same language as the user's topic."
-        )
 
-    support_context = ""
-    if human_support == "A":
-        support_context = (
-            "Human currently supports A. Player A should strengthen their case; "
-            "Player B should challenge A and try to change the human's mind.\n"
-        )
-    elif human_support == "B":
-        support_context = (
-            "Human currently supports B. Player B should strengthen their case; "
-            "Player A should challenge B and try to change the human's mind.\n"
-        )
-    elif human_support == "TIE":
-        support_context = (
-            "Human currently supports neither side. Both players should sharpen the unresolved conflict.\n"
-        )
+    support_context = active_profile.support_context(human_support)
 
     if transcript:
         user_prompt = (
             f"Topic: {topic}\n"
             f"Round: {round_number}\n"
-            f"Opponent: {opponent}\n\n"
+            f"{active_profile.counterpart_label}: {opponent}\n\n"
             f"{support_context}"
             f"Transcript so far:\n{transcript}\n\n"
-            "Now respond with your next argument. Keep it concise and directly engage the prior claims."
+            f"{active_profile.continuation_instruction}"
         )
     else:
         user_prompt = (
             f"Topic: {topic}\n"
             f"Round: {round_number}\n"
-            f"Opponent: {opponent}\n\n"
-            "Open the debate with a clear position and one or two strong reasons."
+            f"{active_profile.counterpart_label}: {opponent}\n\n"
+            f"{active_profile.opening_instruction}"
         )
 
     return [
@@ -250,9 +248,9 @@ def _format_turn(turn: DebateTurn) -> str:
     return f"Round {turn.round} [{turn.speaker}: {turn.persona}] {turn.response_text}"
 
 
-def _display_persona(persona: str, speaker: str) -> str:
+def _display_persona(persona: str, speaker: str, profile: ModeProfile) -> str:
     stripped = persona.strip()
-    return stripped if stripped else f"Point of View {speaker}"
+    return stripped if stripped else profile.default_persona(speaker)
 
 
 def _next_round_number(session: DebateSession) -> int:

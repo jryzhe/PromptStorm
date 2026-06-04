@@ -103,6 +103,61 @@ class EngineTests(unittest.TestCase):
         self.assertIn("A response 1", round_two_a_prompt)
         self.assertIn("B response 2", round_two_a_prompt)
 
+    def test_discussion_mode_prompts_collaborative_analysis_not_default_debate(self):
+        provider = FakeProvider()
+        config = PromptStormConfig(
+            api_key="key",
+            player_a_model="model-a",
+            player_b_model="model-b",
+            report_model="model-report",
+        )
+        engine = DebateEngine(provider=provider, mode="discussion")
+
+        engine.run(
+            topic="兩位顧問討論產品該不該漲價。",
+            player_a_persona="Steve Jobs",
+            player_b_persona="Elon Musk",
+            config=config,
+            session_id="session-discussion",
+        )
+
+        system_prompt = provider.calls[0]["messages"][0]["content"]
+        user_prompt = provider.calls[0]["messages"][-1]["content"]
+        self.assertIn("work together", system_prompt)
+        self.assertIn("Output language: Traditional Chinese.", system_prompt)
+        self.assertIn("Start the discussion", user_prompt)
+        self.assertNotIn("Debate the topic", system_prompt)
+        self.assertNotIn("Open the debate", user_prompt)
+
+    def test_dialogue_mode_prompts_natural_character_conversation(self):
+        provider = FakeProvider()
+        config = PromptStormConfig(
+            api_key="key",
+            player_a_model="model-a",
+            player_b_model="model-b",
+            report_model="model-report",
+        )
+        engine = DebateEngine(provider=provider, mode="dialogue")
+
+        engine.run(
+            topic="A 是焦慮的新創 CEO，B 是老朋友。他們深夜討論要不要裁員。",
+            player_a_persona="焦慮的新創 CEO",
+            player_b_persona="老朋友",
+            config=config,
+            session_id="session-dialogue",
+        )
+
+        system_prompt = provider.calls[0]["messages"][0]["content"]
+        user_prompt = provider.calls[0]["messages"][-1]["content"]
+        self.assertIn("natural dialogue", system_prompt)
+        self.assertIn("Output language: Traditional Chinese.", system_prompt)
+        self.assertIn("Begin the scene", user_prompt)
+        self.assertIn("exactly one brief spoken reply", system_prompt)
+        self.assertIn("Do not write the other character's lines", system_prompt)
+        self.assertIn("your character only", user_prompt)
+        self.assertNotIn("Debate the topic", system_prompt)
+        self.assertNotIn("Open the debate", user_prompt)
+
     def test_continue_debate_adds_rounds_with_human_support_context(self):
         provider = FakeProvider()
         config = PromptStormConfig(
@@ -132,6 +187,29 @@ class EngineTests(unittest.TestCase):
         extension_prompt = provider.calls[6]["messages"][-1]["content"]
         self.assertIn("Human currently supports A", extension_prompt)
         self.assertIn("Round 3", extension_prompt)
+
+    def test_discussion_continuation_uses_mode_specific_human_context(self):
+        provider = FakeProvider()
+        config = PromptStormConfig(
+            api_key="key",
+            player_a_model="model-a",
+            player_b_model="model-b",
+            report_model="model-report",
+        )
+        engine = DebateEngine(provider=provider, mode="discussion")
+        session = engine.run(
+            topic="Should the product get simpler?",
+            player_a_persona="Designer",
+            player_b_persona="Engineer",
+            config=config,
+            session_id="session-discussion-continue",
+        )
+
+        engine.continue_debate(session=session, config=config, human_support="A", rounds=1)
+
+        extension_prompt = provider.calls[6]["messages"][-1]["content"]
+        self.assertIn("A's perspective is currently more useful", extension_prompt)
+        self.assertNotIn("Human currently supports A", extension_prompt)
 
     def test_add_human_input_records_user_turn(self):
         provider = FakeProvider()
