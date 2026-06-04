@@ -16,7 +16,6 @@ HISTORY_FIELDS = [
     "Topic",
     "Winner",
     "Tokens_Used",
-    "Report_Path",
 ]
 
 
@@ -35,16 +34,10 @@ class AuditStore:
         if not self.history_path.exists():
             return "No debates recorded yet."
 
-        try:
-            import pandas as pd  # type: ignore
-        except ImportError:
-            return self._format_stats_from_records(self._read_records())
-
-        frame = pd.read_csv(self.history_path)
-        records = frame.to_dict(orient="records")
-        return self._format_stats_from_records(records)
+        return self._format_stats_from_records(self._read_records())
 
     def _append_history(self, session: DebateSession) -> None:
+        self._migrate_history_schema()
         should_write_header = not self.history_path.exists() or self.history_path.stat().st_size == 0
         with self.history_path.open("a", newline="", encoding="utf-8") as file:
             writer = csv.DictWriter(file, fieldnames=HISTORY_FIELDS)
@@ -59,9 +52,24 @@ class AuditStore:
                     "Topic": session.topic,
                     "Winner": session.winner or "",
                     "Tokens_Used": session.tokens_used,
-                    "Report_Path": session.report_path or "",
                 }
             )
+
+    def _migrate_history_schema(self) -> None:
+        if not self.history_path.exists() or self.history_path.stat().st_size == 0:
+            return
+
+        with self.history_path.open(newline="", encoding="utf-8") as file:
+            reader = csv.DictReader(file)
+            fieldnames = reader.fieldnames or []
+            if "Report_Path" not in fieldnames:
+                return
+            rows = [{field: row.get(field, "") for field in HISTORY_FIELDS} for row in reader]
+
+        with self.history_path.open("w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=HISTORY_FIELDS)
+            writer.writeheader()
+            writer.writerows(rows)
 
     def _append_turns(self, session: DebateSession) -> None:
         with self.turns_path.open("a", encoding="utf-8") as file:

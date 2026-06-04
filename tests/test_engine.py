@@ -75,8 +75,8 @@ class EngineTests(unittest.TestCase):
 
         self.assertEqual([turn.speaker for turn in session.turns], ["A", "B"])
         self.assertEqual(session.turns[0].response_text, "A completed before failure")
-        self.assertIn("Model call failed", session.turns[1].response_text)
-        self.assertIn("RateLimitError: 429", session.turns[1].response_text)
+        self.assertEqual(session.turns[1].status, "error")
+        self.assertIn("RateLimitError: 429", session.turns[1].error)
         self.assertEqual(session.turns[1].tokens_used, 0)
         self.assertEqual(session.tokens_used, 10)
         self.assertEqual([call["model"] for call in provider.calls], ["model-a", "model-b"])
@@ -155,7 +155,31 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(session.turns[-1].speaker, "USER")
         self.assertEqual(session.turns[-1].persona, "Human")
         self.assertEqual(session.turns[-1].model, "human")
+        self.assertEqual(session.turns[-1].round, 3)
         self.assertEqual(session.turns[-1].response_text, "請考慮成本限制。")
+
+    def test_human_input_does_not_skip_next_debate_round(self):
+        provider = FakeProvider()
+        config = PromptStormConfig(
+            api_key="key",
+            player_a_model="model-a",
+            player_b_model="model-b",
+            report_model="model-report",
+        )
+        engine = DebateEngine(provider=provider)
+        session = engine.run(
+            topic="Should human context affect numbering?",
+            player_a_persona="",
+            player_b_persona="",
+            config=config,
+            session_id="session-human-round",
+        )
+
+        engine.add_human_input(session, "補充一個限制。")
+        engine.continue_debate(session=session, config=config, human_support="TIE", rounds=1)
+
+        self.assertEqual([turn.speaker for turn in session.turns[-3:]], ["USER", "A", "B"])
+        self.assertEqual([turn.round for turn in session.turns[-3:]], [3, 4, 4])
 
     def test_clean_response_removes_common_polite_fillers(self):
         cleaned = clean_response("好的，我明白您的意思了。真正的重點是行動。")

@@ -36,7 +36,7 @@ Install the project and its dependencies:
 python3 -m pip install -e .
 ```
 
-This installs the runtime packages used by the CLI, including `openai` for Vercel AI Gateway calls and `pandas` for stats.
+This installs the runtime package used by the CLI: `openai` for Vercel AI Gateway calls.
 
 ## Environment Variables
 
@@ -55,7 +55,7 @@ PLAYER_B_MODEL=alibaba/qwen-3-32b
 REPORT_MODEL=openai/gpt-oss-120b
 ```
 
-Only `AI_GATEWAY_API_KEY` is secret. The model names can be changed whenever you want to try different Gateway models.
+Only `AI_GATEWAY_API_KEY` is secret. `REPORT_MODEL` is used for the final terminal conclusion. The model names can be changed whenever you want to try different Gateway models.
 
 The `.env` file is ignored by git, so do not commit your real key.
 
@@ -113,7 +113,13 @@ Debates write session history to `data/debate_history.csv` and turn transcripts 
 
 `data/debate_history.csv` stores one row per completed debate.
 
-`data/debate_turns.jsonl` stores each model response with session id, round number, speaker, persona, model, response text, token count, and timestamp.
+`data/debate_history.csv` uses this schema:
+
+```text
+Session_ID,Timestamp,Player_A,Player_B,Topic,Winner,Tokens_Used
+```
+
+`data/debate_turns.jsonl` stores each transcript event with session id, debate round number, speaker, persona, model, response text, token count, timestamp, status, and error detail. Human input is kept in transcript order but does not advance the next A/B debate round.
 
 The final conclusion is printed in the terminal. If the conclusion model is rate-limited or fails, PromptStorm prints a local fallback summary with the human position and full transcript instead of losing the completed debate.
 
@@ -122,13 +128,13 @@ The final conclusion is printed in the terminal. If the conclusion model is rate
 Run the unit tests:
 
 ```bash
-python3 -m unittest discover -s tests -v
+.venv/bin/python -m unittest discover -s tests -v
 ```
 
 Compile-check the Python files:
 
 ```bash
-python3 -m compileall src tests main.py
+.venv/bin/python -m compileall src tests main.py
 ```
 
 Smoke-test the CLI:
@@ -140,7 +146,7 @@ python3 -m promptstorm --help
 
 ## Troubleshooting
 
-If Python says `ModuleNotFoundError: No module named 'openai'` or `No module named 'pandas'`, the dependencies are not installed in your current environment. Activate `.venv` and reinstall:
+If Python says `ModuleNotFoundError: No module named 'openai'`, the dependency is not installed in your current environment. Activate `.venv` and reinstall:
 
 ```bash
 source .venv/bin/activate

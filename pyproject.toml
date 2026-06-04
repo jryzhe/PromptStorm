@@ -5,12 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "promptstorm-cli"
 version = "0.1.0"
-description = "Terminal debate tool with two AI models, human judging, audit logs, and reports."
+description = "Terminal debate tool with two AI models, human judging, audit logs, and terminal conclusions."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "openai>=1.0.0",
-    "pandas>=2.0.0",
 ]
 
 [project.scripts]

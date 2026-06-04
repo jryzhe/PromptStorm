@@ -19,7 +19,6 @@ class AuditTests(unittest.TestCase):
                 topic="A topic",
                 winner="TIE",
                 tokens_used=22,
-                report_path="reports/session-1.md",
                 turns=[
                     DebateTurn(
                         session_id="session-1",
@@ -40,6 +39,8 @@ class AuditTests(unittest.TestCase):
                         response_text="B replied",
                         tokens_used=11,
                         timestamp="2026-06-05T00:00:02+08:00",
+                        status="error",
+                        error="RuntimeError: RateLimitError: 429",
                     ),
                 ],
             )
@@ -47,21 +48,25 @@ class AuditTests(unittest.TestCase):
             store.record_session(session)
 
             history = (Path(tmp) / "debate_history.csv").read_text(encoding="utf-8")
-            self.assertIn("Session_ID,Timestamp,Player_A,Player_B,Topic,Winner,Tokens_Used,Report_Path", history)
+            self.assertIn("Session_ID,Timestamp,Player_A,Player_B,Topic,Winner,Tokens_Used", history)
+            self.assertNotIn("Report_Path", history)
             self.assertIn("session-1", history)
             turns = (Path(tmp) / "debate_turns.jsonl").read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(turns), 2)
             self.assertEqual(json.loads(turns[0])["response_text"], "A said something")
+            self.assertEqual(json.loads(turns[0])["status"], "ok")
+            self.assertEqual(json.loads(turns[1])["status"], "error")
+            self.assertIn("RateLimitError: 429", json.loads(turns[1])["error"])
 
     def test_format_stats_reports_leaderboard_and_token_summary(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = AuditStore(Path(tmp))
             history_path = Path(tmp) / "debate_history.csv"
             history_path.write_text(
-                "Session_ID,Timestamp,Player_A,Player_B,Topic,Winner,Tokens_Used,Report_Path\n"
-                "s1,t,Freud,Adler,x,A,10,reports/s1.md\n"
-                "s2,t,Freud,Adler,y,B,20,reports/s2.md\n"
-                "s3,t,Freud,Adler,z,TIE,30,reports/s3.md\n",
+                "Session_ID,Timestamp,Player_A,Player_B,Topic,Winner,Tokens_Used\n"
+                "s1,t,Freud,Adler,x,A,10\n"
+                "s2,t,Freud,Adler,y,B,20\n"
+                "s3,t,Freud,Adler,z,TIE,30\n",
                 encoding="utf-8",
             )
 
@@ -72,6 +77,33 @@ class AuditTests(unittest.TestCase):
             self.assertIn("Tie rate: 33.33%", output)
             self.assertIn("Freud", output)
             self.assertIn("Adler", output)
+
+    def test_record_session_removes_legacy_report_path_column(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AuditStore(Path(tmp))
+            history_path = Path(tmp) / "debate_history.csv"
+            history_path.write_text(
+                "Session_ID,Timestamp,Player_A,Player_B,Topic,Winner,Tokens_Used,Report_Path\n"
+                "old,t,A,B,old topic,A,10,reports/old.md\n",
+                encoding="utf-8",
+            )
+            session = DebateSession(
+                session_id="new",
+                timestamp="2026-06-05T00:00:00+08:00",
+                player_a="A",
+                player_b="B",
+                topic="new topic",
+                winner="B",
+                tokens_used=12,
+            )
+
+            store.record_session(session)
+
+            history = history_path.read_text(encoding="utf-8")
+            self.assertIn("Session_ID,Timestamp,Player_A,Player_B,Topic,Winner,Tokens_Used\n", history)
+            self.assertNotIn("Report_Path", history)
+            self.assertIn("old,t,A,B,old topic,A,10", history)
+            self.assertIn("new,2026-06-05T00:00:00+08:00,A,B,new topic,B,12", history)
 
 
 if __name__ == "__main__":

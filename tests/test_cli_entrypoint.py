@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import promptstorm.cli as cli_module
 from promptstorm.cli import (
     TURN_DIVIDER,
     format_turn_heading,
@@ -16,21 +17,11 @@ from promptstorm.models import DebateSession, DebateTurn, PromptStormConfig
 
 
 class FailingWriter:
-    def __init__(self, reports_dir):
-        self.reports_dir = reports_dir
+    def __init__(self):
         self.fallback_reason = None
-
-    def write_report(self, session, verdict, config):
-        raise RuntimeError("RateLimitError: 429")
 
     def generate_conclusion(self, session, verdict, config, on_token=None):
         raise RuntimeError("RateLimitError: 429")
-
-    def write_fallback_report(self, session, verdict, reason):
-        self.fallback_reason = reason
-        path = self.reports_dir / f"{session.session_id}.md"
-        path.write_text("fallback report", encoding="utf-8")
-        return path
 
     def build_fallback_conclusion(self, session, verdict, reason):
         self.fallback_reason = reason
@@ -55,9 +46,9 @@ class CliEntrypointTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("No debates recorded yet.", result.stdout)
 
-    def test_write_conclusion_safely_returns_fallback_when_report_model_fails(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            writer = FailingWriter(Path(tmp))
+    def test_write_conclusion_safely_returns_fallback_when_conclusion_model_fails(self):
+        with tempfile.TemporaryDirectory():
+            writer = FailingWriter()
             session = DebateSession(
                 session_id="session-3",
                 timestamp="2026-06-05T00:00:00+08:00",
@@ -78,9 +69,11 @@ class CliEntrypointTests(unittest.TestCase):
             self.assertEqual(tokens, 0)
             self.assertEqual(text, "fallback terminal conclusion")
             self.assertIn("RateLimitError: 429", writer.fallback_reason)
-            self.assertFalse((Path(tmp) / "session-3.md").exists())
 
-    def test_session_has_model_error_detects_failed_turn(self):
+    def test_cli_has_no_report_file_safety_path(self):
+        self.assertFalse(hasattr(cli_module, "write_report_safely"))
+
+    def test_session_has_model_error_detects_failed_turn_status(self):
         session = DebateSession(
             session_id="session-4",
             timestamp="2026-06-05T00:00:00+08:00",
@@ -94,9 +87,11 @@ class CliEntrypointTests(unittest.TestCase):
                     speaker="B",
                     persona="B",
                     model="model-b",
-                    response_text="Model call failed: RuntimeError: RateLimitError: 429",
+                    response_text="The model did not produce a response.",
                     tokens_used=0,
                     timestamp="2026-06-05T00:00:01+08:00",
+                    status="error",
+                    error="RuntimeError: RateLimitError: 429",
                 )
             ],
         )

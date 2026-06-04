@@ -8,9 +8,8 @@ from typing import Sequence
 from .audit import AuditStore
 from .config import load_config, save_api_key
 from .engine import DebateEngine
-from .models import normalize_verdict
 from .provider import VercelGatewayProvider
-from .reporter import ReportWriter
+from .reporter import ConclusionWriter
 
 
 RESET = "\033[0m"
@@ -117,15 +116,14 @@ def run_debate(root: Path) -> int:
         on_token=on_token,
         on_turn_end=on_turn_end,
     )
-    writer = ReportWriter(provider=provider, reports_dir=root / "reports")
+    writer = ConclusionWriter(provider=provider)
     print("\nOutputting conclusion...\n")
-    conclusion, report_tokens, used_fallback = write_conclusion_safely(writer, session, final_support, config)
+    conclusion, conclusion_tokens, used_fallback = write_conclusion_safely(writer, session, final_support, config)
     print(conclusion)
     if used_fallback:
-        print("\nReport model failed; printed a local fallback transcript summary instead.")
+        print("\nConclusion model failed; printed a local fallback transcript summary instead.")
     session.winner = final_support
-    session.report_path = ""
-    session.tokens_used += report_tokens
+    session.tokens_used += conclusion_tokens
 
     AuditStore(root / "data").record_session(session)
     print("Audit: data/debate_history.csv and data/debate_turns.jsonl")
@@ -205,24 +203,14 @@ def format_turn_heading(round_number: int, speaker: str, persona: str) -> str:
     return "\n".join(lines)
 
 
-def write_report_safely(writer, session, verdict: str, config) -> tuple[Path, int, bool]:
-    try:
-        report_path, report_tokens = writer.write_report(session, verdict, config)
-        return report_path, report_tokens, False
-    except Exception as exc:
-        reason = f"{exc.__class__.__name__}: {exc}"
-        report_path = writer.write_fallback_report(session, verdict, reason)
-        return report_path, 0, True
-
-
 def write_conclusion_safely(writer, session, verdict: str, config) -> tuple[str, int, bool]:
     try:
-        conclusion, report_tokens = writer.generate_conclusion(session, verdict, config)
-        return conclusion, report_tokens, False
+        conclusion, conclusion_tokens = writer.generate_conclusion(session, verdict, config)
+        return conclusion, conclusion_tokens, False
     except Exception as exc:
         reason = f"{exc.__class__.__name__}: {exc}"
         return writer.build_fallback_conclusion(session, verdict, reason), 0, True
 
 
 def session_has_model_error(session) -> bool:
-    return any(turn.response_text.startswith("Model call failed:") for turn in session.turns)
+    return any(getattr(turn, "status", "ok") == "error" for turn in session.turns)

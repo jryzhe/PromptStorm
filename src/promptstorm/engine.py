@@ -19,6 +19,8 @@ POLITE_FILLERS = [
     "Sure.",
 ]
 
+DEBATE_SPEAKERS = {"A", "B"}
+
 
 class DebateEngine:
     def __init__(self, provider: ModelProvider, rounds: int = 3):
@@ -82,7 +84,7 @@ class DebateEngine:
         session.turns.append(
             DebateTurn(
                 session_id=session.session_id,
-                round=_next_round_number(session),
+                round=_current_debate_round(session),
                 speaker="USER",
                 persona="Human",
                 model="human",
@@ -125,6 +127,7 @@ class DebateEngine:
                         on_token=(lambda token, active=speaker: on_token(active, token)) if on_token else None,
                     )
                 except Exception as exc:
+                    error = f"{exc.__class__.__name__}: {exc}"
                     session.turns.append(
                         DebateTurn(
                             session_id=session.session_id,
@@ -132,9 +135,11 @@ class DebateEngine:
                             speaker=speaker,
                             persona=persona,
                             model=model,
-                            response_text=f"Model call failed: {exc.__class__.__name__}: {exc}",
+                            response_text="The model did not produce a response.",
                             tokens_used=0,
                             timestamp=_now(),
+                            status="error",
+                            error=error,
                         )
                     )
                     if on_turn_end:
@@ -231,9 +236,18 @@ def _build_messages(
 
 
 def _format_transcript(turns: list[DebateTurn]) -> str:
-    return "\n".join(
-        f"Round {turn.round} [{turn.speaker}: {turn.persona}] {turn.response_text}" for turn in turns
-    )
+    return "\n".join(_format_turn(turn) for turn in turns)
+
+
+def _format_turn(turn: DebateTurn) -> str:
+    if turn.speaker == "USER":
+        if turn.round > 0:
+            return f"Human input after Round {turn.round}: {turn.response_text}"
+        return f"Human input before Round 1: {turn.response_text}"
+    if turn.status == "error":
+        detail = f" ({turn.error})" if turn.error else ""
+        return f"Round {turn.round} [{turn.speaker}: {turn.persona}] Model call failed{detail}"
+    return f"Round {turn.round} [{turn.speaker}: {turn.persona}] {turn.response_text}"
 
 
 def _display_persona(persona: str, speaker: str) -> str:
@@ -242,9 +256,15 @@ def _display_persona(persona: str, speaker: str) -> str:
 
 
 def _next_round_number(session: DebateSession) -> int:
-    if not session.turns:
+    current_round = _current_debate_round(session)
+    if current_round == 0:
         return 1
-    return max(turn.round for turn in session.turns) + 1
+    return current_round + 1
+
+
+def _current_debate_round(session: DebateSession) -> int:
+    debate_rounds = [turn.round for turn in session.turns if turn.speaker in DEBATE_SPEAKERS]
+    return max(debate_rounds) if debate_rounds else 0
 
 
 def _new_session_id() -> str:
