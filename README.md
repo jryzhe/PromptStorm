@@ -107,7 +107,7 @@ Debates write session history to `data/debate_history.csv`, turn transcripts to 
 
 `data/debate_turns.jsonl` stores each model response with session id, round number, speaker, persona, model, response text, token count, and timestamp.
 
-`reports/<session_id>.md` stores the final Markdown report generated after the human vote.
+`reports/<session_id>.md` stores the final Markdown report generated after the human vote. If the report model is rate-limited or fails, PromptStorm saves a local fallback report with the human verdict and full transcript instead of losing the completed debate.
 
 ## Testing
 
@@ -140,6 +140,8 @@ python3 -m pip install -e .
 ```
 
 If the live debate fails with `RateLimitError: 429`, the project is reaching Vercel AI Gateway, but the selected model or free-tier credits are rate-limited. Try a cheaper or less restricted model, wait for the limit to reset, or top up Gateway credits.
+
+If the debate finishes but the report model is rate-limited, PromptStorm writes a local fallback report to `reports/<session_id>.md` and still records the debate in `data/debate_history.csv` and `data/debate_turns.jsonl`.
 
 If the CLI says the API key is missing, check that `.env` exists in the project root and contains:
 

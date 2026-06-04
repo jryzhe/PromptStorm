@@ -43,6 +43,24 @@ class ReportWriter:
         )
         return report_path, response.tokens_used
 
+    def write_fallback_report(self, session: DebateSession, verdict: str, reason: str) -> Path:
+        normalized_verdict = normalize_verdict(verdict)
+        self.reports_dir.mkdir(parents=True, exist_ok=True)
+        report_path = self.reports_dir / f"{session.session_id}.md"
+        report_path.write_text(
+            _metadata_header(session, normalized_verdict)
+            + "\n"
+            + "Report Generation Status: Fallback\n\n"
+            + "## Why This Report Was Generated Locally\n\n"
+            + f"The report model failed before producing a final summary: `{reason}`\n\n"
+            + "The human verdict and full debate transcript were still saved below.\n\n"
+            + "## Transcript\n\n"
+            + _format_transcript(session)
+            + "\n",
+            encoding="utf-8",
+        )
+        return report_path
+
     def _build_prompt(self, session: DebateSession, verdict: str) -> str:
         return (
             f"Topic: {session.topic}\n"

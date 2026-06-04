@@ -112,7 +112,9 @@ def run_debate(root: Path) -> int:
     verdict = prompt_for_verdict()
     writer = ReportWriter(provider=provider, reports_dir=root / "reports")
     print("\nWriting report...")
-    report_path, report_tokens = writer.write_report(session, verdict, config)
+    report_path, report_tokens, used_fallback = write_report_safely(writer, session, verdict, config)
+    if used_fallback:
+        print("Report model failed; saved a local fallback transcript report instead.")
     session.winner = verdict
     session.report_path = str(report_path)
     session.tokens_used += report_tokens
@@ -133,3 +135,13 @@ def prompt_for_verdict() -> str:
             return normalize_verdict(input("Your vote > "))
         except ValueError:
             print("Please enter A, B, or C.")
+
+
+def write_report_safely(writer, session, verdict: str, config) -> tuple[Path, int, bool]:
+    try:
+        report_path, report_tokens = writer.write_report(session, verdict, config)
+        return report_path, report_tokens, False
+    except Exception as exc:
+        reason = f"{exc.__class__.__name__}: {exc}"
+        report_path = writer.write_fallback_report(session, verdict, reason)
+        return report_path, 0, True
