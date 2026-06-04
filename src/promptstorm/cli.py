@@ -108,6 +108,8 @@ def run_debate(root: Path) -> int:
         on_token=on_token,
         on_turn_end=on_turn_end,
     )
+    if session_has_model_error(session):
+        print("\nA model call failed during the debate; saving the partial transcript.")
 
     verdict = prompt_for_verdict()
     writer = ReportWriter(provider=provider, reports_dir=root / "reports")
@@ -145,3 +147,7 @@ def write_report_safely(writer, session, verdict: str, config) -> tuple[Path, in
         reason = f"{exc.__class__.__name__}: {exc}"
         report_path = writer.write_fallback_report(session, verdict, reason)
         return report_path, 0, True
+
+
+def session_has_model_error(session) -> bool:
+    return any(turn.response_text.startswith("Model call failed:") for turn in session.turns)

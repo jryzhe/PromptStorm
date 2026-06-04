@@ -18,6 +18,17 @@ class FakeProvider:
         return ModelResponse(text=response_text, tokens_used=10)
 
 
+class FailingProvider:
+    def __init__(self):
+        self.calls = []
+
+    def complete_stream(self, model, messages, on_token=None):
+        self.calls.append({"model": model, "messages": messages})
+        if model == "model-b":
+            raise RuntimeError("RateLimitError: 429")
+        return ModelResponse(text="A completed before failure", tokens_used=10)
+
+
 class EngineTests(unittest.TestCase):
     def test_debate_runs_three_rounds_with_a_before_b(self):
         provider = FakeProvider()
@@ -43,6 +54,32 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(session.player_b, "Adler")
         self.assertEqual(session.tokens_used, 60)
         self.assertEqual([call["model"] for call in provider.calls], ["model-a", "model-b"] * 3)
+
+    def test_model_failure_records_error_turn_and_stops_debate(self):
+        provider = FailingProvider()
+        config = PromptStormConfig(
+            api_key="key",
+            player_a_model="model-a",
+            player_b_model="model-b",
+            report_model="model-report",
+        )
+        engine = DebateEngine(provider=provider)
+
+        session = engine.run(
+            topic="Will this survive rate limits?",
+            player_a_persona="",
+            player_b_persona="",
+            config=config,
+            session_id="session-rate-limit",
+        )
+
+        self.assertEqual([turn.speaker for turn in session.turns], ["A", "B"])
+        self.assertEqual(session.turns[0].response_text, "A completed before failure")
+        self.assertIn("Model call failed", session.turns[1].response_text)
+        self.assertIn("RateLimitError: 429", session.turns[1].response_text)
+        self.assertEqual(session.turns[1].tokens_used, 0)
+        self.assertEqual(session.tokens_used, 10)
+        self.assertEqual([call["model"] for call in provider.calls], ["model-a", "model-b"])
 
     def test_later_round_prompts_include_prior_transcript(self):
         provider = FakeProvider()

@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from promptstorm.cli import write_report_safely
-from promptstorm.models import DebateSession, PromptStormConfig
+from promptstorm.cli import session_has_model_error, write_report_safely
+from promptstorm.models import DebateSession, DebateTurn, PromptStormConfig
 
 
 class FailingWriter:
@@ -65,6 +65,29 @@ class CliEntrypointTests(unittest.TestCase):
             self.assertEqual(tokens, 0)
             self.assertEqual(report_path.read_text(encoding="utf-8"), "fallback report")
             self.assertIn("RateLimitError: 429", writer.fallback_reason)
+
+    def test_session_has_model_error_detects_failed_turn(self):
+        session = DebateSession(
+            session_id="session-4",
+            timestamp="2026-06-05T00:00:00+08:00",
+            player_a="A",
+            player_b="B",
+            topic="Topic",
+            turns=[
+                DebateTurn(
+                    session_id="session-4",
+                    round=1,
+                    speaker="B",
+                    persona="B",
+                    model="model-b",
+                    response_text="Model call failed: RuntimeError: RateLimitError: 429",
+                    tokens_used=0,
+                    timestamp="2026-06-05T00:00:01+08:00",
+                )
+            ],
+        )
+
+        self.assertTrue(session_has_model_error(session))
 
 
 if __name__ == "__main__":

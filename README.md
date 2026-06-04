@@ -141,6 +141,8 @@ python3 -m pip install -e .
 
 If the live debate fails with `RateLimitError: 429`, the project is reaching Vercel AI Gateway, but the selected model or free-tier credits are rate-limited. Try a cheaper or less restricted model, wait for the limit to reset, or top up Gateway credits.
 
+If a player model is rate-limited during the debate, PromptStorm records the failed turn, stops the remaining rounds, and still lets you save the partial transcript.
+
 If the debate finishes but the report model is rate-limited, PromptStorm writes a local fallback report to `reports/<session_id>.md` and still records the debate in `data/debate_history.csv` and `data/debate_turns.jsonl`.
 
 If the CLI says the API key is missing, check that `.env` exists in the project root and contains:

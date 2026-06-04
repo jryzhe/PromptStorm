@@ -50,18 +50,35 @@ class DebateEngine:
                 model = config.player_a_model if speaker == "A" else config.player_b_model
                 if on_turn_start:
                     on_turn_start(round_number, speaker, persona)
-                response = self.provider.complete_stream(
-                    model=model,
-                    messages=_build_messages(
-                        topic=topic,
-                        round_number=round_number,
-                        speaker=speaker,
-                        persona=persona,
-                        opponent=session.player_b if speaker == "A" else session.player_a,
-                        transcript=_format_transcript(session.turns),
-                    ),
-                    on_token=(lambda token, active=speaker: on_token(active, token)) if on_token else None,
-                )
+                try:
+                    response = self.provider.complete_stream(
+                        model=model,
+                        messages=_build_messages(
+                            topic=topic,
+                            round_number=round_number,
+                            speaker=speaker,
+                            persona=persona,
+                            opponent=session.player_b if speaker == "A" else session.player_a,
+                            transcript=_format_transcript(session.turns),
+                        ),
+                        on_token=(lambda token, active=speaker: on_token(active, token)) if on_token else None,
+                    )
+                except Exception as exc:
+                    session.turns.append(
+                        DebateTurn(
+                            session_id=session.session_id,
+                            round=round_number,
+                            speaker=speaker,
+                            persona=persona,
+                            model=model,
+                            response_text=f"Model call failed: {exc.__class__.__name__}: {exc}",
+                            tokens_used=0,
+                            timestamp=_now(),
+                        )
+                    )
+                    if on_turn_end:
+                        on_turn_end(round_number, speaker)
+                    return session
                 cleaned_text = clean_response(response.text)
                 session.turns.append(
                     DebateTurn(
