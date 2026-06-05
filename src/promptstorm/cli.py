@@ -92,10 +92,19 @@ def run_session(root: Path, mode: str) -> int:
         return 1
 
     provider = VercelGatewayProvider(config.api_key)
-    engine = DebateEngine(provider=provider, mode=profile.name)
+    engine = DebateEngine(
+        provider=provider,
+        mode=profile.name,
+        rate_limit_retries=2,
+        rate_limit_retry_delay_seconds=30,
+    )
+    last_heading_round: int | None = None
 
     def on_turn_start(round_number: int, speaker: str, persona: str) -> None:
-        print(format_turn_heading(round_number, speaker, persona))
+        nonlocal last_heading_round
+        show_round_label = round_number != last_heading_round
+        last_heading_round = round_number
+        print(format_turn_heading(round_number, speaker, persona, show_round_label=show_round_label))
 
     def on_token(speaker: str, token: str) -> None:
         color = CYAN if speaker == "A" else MAGENTA
@@ -103,6 +112,12 @@ def run_session(root: Path, mode: str) -> int:
 
     def on_turn_end(round_number: int, speaker: str) -> None:
         print()
+
+    def on_model_retry(round_number: int, speaker: str, delay: float, error: str) -> None:
+        print(
+            f"\n模型暫時限流，{delay:g} 秒後重試 "
+            f"(Round {round_number} {speaker}: {summarize_model_error(error)})"
+        )
 
     session = engine.run(
         topic=topic,
@@ -112,9 +127,11 @@ def run_session(root: Path, mode: str) -> int:
         on_turn_start=on_turn_start,
         on_token=on_token,
         on_turn_end=on_turn_end,
+        on_model_retry=on_model_retry,
     )
     if session_has_model_error(session):
-        print(f"\nA model call failed during the {profile.name}; saving the partial transcript.")
+        print(f"\nA model call failed during the {profile.name}: {latest_model_error_summary(session)}")
+        print("Saving the partial transcript.")
 
     final_support = run_control_loop(
         engine=engine,
@@ -124,6 +141,7 @@ def run_session(root: Path, mode: str) -> int:
         on_turn_start=on_turn_start,
         on_token=on_token,
         on_turn_end=on_turn_end,
+        on_model_retry=on_model_retry,
     )
     writer = ConclusionWriter(provider=provider)
     print(f"\nOutputting {profile.output_label}...\n")
@@ -153,43 +171,142 @@ def run_control_loop(
     on_turn_start,
     on_token,
     on_turn_end,
+    on_model_retry=None,
 ) -> str:
     final_support = "TIE"
     while True:
         print("\nControl:")
         for line in profile.control_lines:
             print(line)
-        choice = input("Your choice > ").strip().upper()
+        choice = input("請選擇 > ").strip().upper()
         if choice in {"A", "B", "R"}:
-            final_support = "TIE" if choice == "R" else choice
+            final_support = _support_from_control_choice(choice)
             rounds = prompt_for_round_count()
-            engine.continue_debate(
+            continue_from_control_choice(
+                engine=engine,
                 session=session,
                 config=config,
+                profile=profile,
+                control_choice=choice,
                 human_support=final_support,
                 rounds=rounds,
                 on_turn_start=on_turn_start,
                 on_token=on_token,
                 on_turn_end=on_turn_end,
+                on_model_retry=on_model_retry,
             )
-            if session_has_model_error(session):
-                print(f"\nA model call failed during the {profile.name}; you can add input or output the current transcript.")
         elif choice == "I":
-            human_text = input("Your input > ").strip()
+            human_text = input("你的補充 > ").strip()
             if human_text:
                 engine.add_human_input(session, human_text)
+                next_choice = input("已記錄補充。按 Enter 以目前方向繼續 1 回合，或輸入 A/B/R/O > ").strip().upper()
+                if not next_choice:
+                    continue_from_control_choice(
+                        engine=engine,
+                        session=session,
+                        config=config,
+                        profile=profile,
+                        control_choice=_control_choice_from_support(final_support),
+                        human_support=final_support,
+                        rounds=1,
+                        on_turn_start=on_turn_start,
+                        on_token=on_token,
+                        on_turn_end=on_turn_end,
+                        on_model_retry=on_model_retry,
+                    )
+                elif next_choice in {"A", "B", "R"}:
+                    final_support = _support_from_control_choice(next_choice)
+                    rounds = prompt_for_round_count()
+                    continue_from_control_choice(
+                        engine=engine,
+                        session=session,
+                        config=config,
+                        profile=profile,
+                        control_choice=next_choice,
+                        human_support=final_support,
+                        rounds=rounds,
+                        on_turn_start=on_turn_start,
+                        on_token=on_token,
+                        on_turn_end=on_turn_end,
+                        on_model_retry=on_model_retry,
+                    )
+                elif next_choice == "O":
+                    return final_support
+                else:
+                    print("請輸入 A、B、R、I 或 O。")
         elif choice == "O":
             return final_support
         else:
-            print("Please enter A, B, R, I, or O.")
+            print("請輸入 A、B、R、I 或 O。")
+
+
+def continue_from_control_choice(
+    engine: DebateEngine,
+    session,
+    config,
+    profile: ModeProfile,
+    control_choice: str,
+    human_support: str,
+    rounds: int,
+    on_turn_start,
+    on_token,
+    on_turn_end,
+    on_model_retry=None,
+) -> None:
+    engine.continue_debate(
+        session=session,
+        config=config,
+        human_support=human_support,
+        rounds=rounds,
+        speaker_order=_speaker_order_for_control_choice(profile, control_choice),
+        on_turn_start=on_turn_start,
+        on_token=on_token,
+        on_turn_end=on_turn_end,
+        on_model_retry=on_model_retry,
+    )
+    if session_has_model_error(session):
+        print(f"\nA model call failed during the {profile.name}: {latest_model_error_summary(session)}")
+        print("You can add input or output the current transcript.")
+
+
+def _support_from_control_choice(choice: str) -> str:
+    return "TIE" if choice == "R" else choice
+
+
+def _control_choice_from_support(human_support: str) -> str:
+    return "R" if human_support == "TIE" else human_support
+
+
+def _speaker_order_for_control_choice(profile: ModeProfile, control_choice: str) -> tuple[str, str]:
+    if profile.name == "dialogue" and control_choice == "B":
+        return ("B", "A")
+    return ("A", "B")
+
+
+def latest_model_error_summary(session) -> str:
+    for turn in reversed(getattr(session, "turns", [])):
+        if getattr(turn, "status", "ok") == "error":
+            return summarize_model_error(getattr(turn, "error", "") or "Unknown error")
+    return "Unknown error"
+
+
+def summarize_model_error(error: str) -> str:
+    compact = " ".join(str(error).split())
+    if "429" in compact and ("RateLimitError" in compact or "rate_limit" in compact):
+        if "Free tier requests" in compact:
+            return "RateLimitError: 429 - Free tier requests on this model are rate-limited."
+        return "RateLimitError: 429"
+    if len(compact) > 240:
+        return compact[:237] + "..."
+    return compact
 
 
 def prompt_for_round_count() -> int:
     while True:
         try:
-            return parse_round_count(input("How many rounds? [1] > "))
+            return parse_round_count(input("要繼續幾回合？（每回合兩位各回一句）[1] > "))
         except ValueError:
-            print("Please enter a positive integer.")
+            print("請輸入正整數。")
 
 
 def parse_round_count(raw_value: str) -> int:
@@ -202,10 +319,17 @@ def parse_round_count(raw_value: str) -> int:
     return rounds
 
 
-def format_turn_heading(round_number: int, speaker: str, persona: str) -> str:
+def format_turn_heading(
+    round_number: int,
+    speaker: str,
+    persona: str,
+    show_round_label: bool | None = None,
+) -> str:
     color = CYAN if speaker == "A" else MAGENTA
     lines = [""]
-    if speaker == "A":
+    if show_round_label is None:
+        show_round_label = speaker == "A"
+    if show_round_label:
         lines.append(f"{BOLD}Round {round_number}{RESET}")
     lines.extend(
         [

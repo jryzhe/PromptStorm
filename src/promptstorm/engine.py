@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
+from time import sleep as default_sleep
 from typing import Callable
 from uuid import uuid4
 
@@ -24,10 +26,21 @@ DEBATE_SPEAKERS = {"A", "B"}
 
 
 class DebateEngine:
-    def __init__(self, provider: ModelProvider, rounds: int = 3, mode: str = "debate"):
+    def __init__(
+        self,
+        provider: ModelProvider,
+        rounds: int = 3,
+        mode: str = "debate",
+        rate_limit_retries: int = 0,
+        rate_limit_retry_delay_seconds: float = 0,
+        sleep: Callable[[float], None] = default_sleep,
+    ):
         self.provider = provider
         self.rounds = rounds
         self.mode_profile = get_mode_profile(mode)
+        self.rate_limit_retries = max(0, rate_limit_retries)
+        self.rate_limit_retry_delay_seconds = max(0, rate_limit_retry_delay_seconds)
+        self._sleep = sleep
 
     def run(
         self,
@@ -39,6 +52,7 @@ class DebateEngine:
         on_turn_start: Callable[[int, str, str], None] | None = None,
         on_token: Callable[[str, str], None] | None = None,
         on_turn_end: Callable[[int, str], None] | None = None,
+        on_model_retry: Callable[[int, str, float, str], None] | None = None,
     ) -> DebateSession:
         session = DebateSession(
             session_id=session_id or _new_session_id(),
@@ -57,6 +71,7 @@ class DebateEngine:
             on_turn_start=on_turn_start,
             on_token=on_token,
             on_turn_end=on_turn_end,
+            on_model_retry=on_model_retry,
         )
         return session
 
@@ -66,9 +81,11 @@ class DebateEngine:
         config: PromptStormConfig,
         human_support: str,
         rounds: int,
+        speaker_order: tuple[str, str] = ("A", "B"),
         on_turn_start: Callable[[int, str, str], None] | None = None,
         on_token: Callable[[str, str], None] | None = None,
         on_turn_end: Callable[[int, str], None] | None = None,
+        on_model_retry: Callable[[int, str, float, str], None] | None = None,
     ) -> DebateSession:
         self._run_rounds(
             session=session,
@@ -76,9 +93,11 @@ class DebateEngine:
             start_round=_next_round_number(session),
             rounds=rounds,
             human_support=human_support,
+            speaker_order=speaker_order,
             on_turn_start=on_turn_start,
             on_token=on_token,
             on_turn_end=on_turn_end,
+            on_model_retry=on_model_retry,
         )
         return session
 
@@ -104,18 +123,20 @@ class DebateEngine:
         start_round: int,
         rounds: int,
         human_support: str | None,
-        on_turn_start: Callable[[int, str, str], None] | None,
-        on_token: Callable[[str, str], None] | None,
-        on_turn_end: Callable[[int, str], None] | None,
+        speaker_order: tuple[str, str] = ("A", "B"),
+        on_turn_start: Callable[[int, str, str], None] | None = None,
+        on_token: Callable[[str, str], None] | None = None,
+        on_turn_end: Callable[[int, str], None] | None = None,
+        on_model_retry: Callable[[int, str, float, str], None] | None = None,
     ) -> None:
         for round_number in range(start_round, start_round + max(0, rounds)):
-            for speaker in ("A", "B"):
+            for speaker in speaker_order:
                 persona = session.player_a if speaker == "A" else session.player_b
                 model = config.player_a_model if speaker == "A" else config.player_b_model
                 if on_turn_start:
                     on_turn_start(round_number, speaker, persona)
                 try:
-                    response = self.provider.complete_stream(
+                    response = self._complete_stream_with_retries(
                         model=model,
                         messages=_build_messages(
                             topic=session.topic,
@@ -135,7 +156,9 @@ class DebateEngine:
                                 ],
                             ),
                         ),
-                        on_token=(lambda token, active=speaker: on_token(active, token)) if on_token else None,
+                        round_number=round_number,
+                        speaker=speaker,
+                        on_model_retry=on_model_retry,
                     )
                 except Exception as exc:
                     error = f"{exc.__class__.__name__}: {exc}"
@@ -156,7 +179,9 @@ class DebateEngine:
                     if on_turn_end:
                         on_turn_end(round_number, speaker)
                     return
-                cleaned_text = clean_response(response.text)
+                cleaned_text = clean_response(response.text, self.mode_profile)
+                if on_token and cleaned_text:
+                    on_token(speaker, cleaned_text)
                 session.turns.append(
                     DebateTurn(
                         session_id=session.session_id,
@@ -173,9 +198,33 @@ class DebateEngine:
                 if on_turn_end:
                     on_turn_end(round_number, speaker)
 
+    def _complete_stream_with_retries(
+        self,
+        model: str,
+        messages: list[dict[str, str]],
+        round_number: int,
+        speaker: str,
+        on_model_retry: Callable[[int, str, float, str], None] | None,
+    ) -> object:
+        attempts = 0
+        while True:
+            try:
+                return self.provider.complete_stream(model=model, messages=messages, on_token=None)
+            except Exception as exc:
+                error = _format_exception(exc)
+                if attempts >= self.rate_limit_retries or not _is_rate_limit_error(error):
+                    raise
+                attempts += 1
+                delay = self.rate_limit_retry_delay_seconds
+                if on_model_retry:
+                    on_model_retry(round_number, speaker, delay, error)
+                if delay > 0:
+                    self._sleep(delay)
 
-def clean_response(text: str) -> str:
-    cleaned = text.strip()
+
+def clean_response(text: str, profile: ModeProfile | None = None) -> str:
+    cleaned = _strip_reasoning_blocks(text).strip()
+    cleaned = _strip_turn_prefix(cleaned).strip()
     changed = True
     while changed:
         changed = False
@@ -183,6 +232,61 @@ def clean_response(text: str) -> str:
             if cleaned.startswith(filler):
                 cleaned = cleaned[len(filler) :].lstrip()
                 changed = True
+    if profile and profile.name == "dialogue":
+        cleaned = _clean_dialogue_reply(cleaned)
+    return cleaned
+
+
+def _format_exception(exc: Exception) -> str:
+    return f"{exc.__class__.__name__}: {exc}"
+
+
+def _is_rate_limit_error(error: str) -> bool:
+    lowered = error.lower()
+    return "ratelimit" in lowered or "rate_limit" in lowered or "429" in lowered
+
+
+def _strip_reasoning_blocks(text: str) -> str:
+    return re.sub(r"(?is)<think>.*?</think>\s*", "", text)
+
+
+def _strip_turn_prefix(text: str) -> str:
+    return re.sub(r"(?is)^\s*Round\s+\d+\s+\[[^\]]+\]\s*", "", text)
+
+
+def _clean_dialogue_reply(text: str) -> str:
+    cleaned = text.strip()
+    cleaned = _strip_leading_speaker_label(cleaned)
+    cleaned = _strip_leading_stage_directions(cleaned)
+
+    quoted = re.search(r"「([^」]+)」", cleaned)
+    if quoted:
+        return quoted.group(1).strip()
+
+    paragraphs = [part.strip() for part in re.split(r"\n\s*\n", cleaned) if part.strip()]
+    if paragraphs:
+        cleaned = paragraphs[0]
+    lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+    if lines:
+        cleaned = lines[0]
+    cleaned = _strip_leading_speaker_label(cleaned)
+    cleaned = _strip_leading_stage_directions(cleaned)
+    return cleaned.strip().strip('"').strip("'").strip()
+
+
+def _strip_leading_speaker_label(text: str) -> str:
+    return re.sub(r"^\s*[^\n:：]{1,24}[：:]\s*", "", text, count=1)
+
+
+def _strip_leading_stage_directions(text: str) -> str:
+    cleaned = text
+    changed = True
+    while changed:
+        changed = False
+        updated = re.sub(r"^\s*(?:（[^）]*）|\([^)]*\)|\[[^\]]*\]|【[^】]*】)\s*", "", cleaned, count=1)
+        if updated != cleaned:
+            cleaned = updated
+            changed = True
     return cleaned
 
 

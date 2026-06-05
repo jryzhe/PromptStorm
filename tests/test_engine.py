@@ -29,6 +29,37 @@ class FailingProvider:
         return ModelResponse(text="A completed before failure", tokens_used=10)
 
 
+class RateLimitedOnceProvider:
+    def __init__(self):
+        self.calls = []
+
+    def complete_stream(self, model, messages, on_token=None):
+        self.calls.append({"model": model, "messages": messages})
+        if len(self.calls) == 1:
+            raise RuntimeError("RateLimitError: Error code: 429 - free tier requests are rate-limited")
+        return ModelResponse(text="Recovered after retry", tokens_used=8)
+
+
+class ThinkyDialogueProvider:
+    def __init__(self):
+        self.calls = []
+        self.received_stream_callback = False
+
+    def complete_stream(self, model, messages, on_token=None):
+        self.calls.append({"model": model, "messages": messages})
+        self.received_stream_callback = on_token is not None
+        raw_text = (
+            "<think>\n"
+            "我需要先分析學生和老師的心理狀態，然後給出完整劇本。\n"
+            "</think>\n\n"
+            "老師：[眉頭微蹙]我原意是希望你們能靈活運用知識，但確實該提前說明跨章節題型的比例。你看這樣好嗎？\n\n"
+            "學生：可是這樣還是不公平。"
+        )
+        if on_token:
+            on_token(raw_text)
+        return ModelResponse(text=raw_text, tokens_used=20)
+
+
 class EngineTests(unittest.TestCase):
     def test_debate_runs_three_rounds_with_a_before_b(self):
         provider = FakeProvider()
@@ -80,6 +111,42 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(session.turns[1].tokens_used, 0)
         self.assertEqual(session.tokens_used, 10)
         self.assertEqual([call["model"] for call in provider.calls], ["model-a", "model-b"])
+
+    def test_rate_limited_turn_retries_before_recording_error(self):
+        provider = RateLimitedOnceProvider()
+        config = PromptStormConfig(
+            api_key="key",
+            player_a_model="model-a",
+            player_b_model="model-b",
+            report_model="model-report",
+        )
+        retry_events = []
+        sleeps = []
+        engine = DebateEngine(
+            provider=provider,
+            rounds=1,
+            rate_limit_retries=1,
+            rate_limit_retry_delay_seconds=0.5,
+            sleep=sleeps.append,
+        )
+
+        session = engine.run(
+            topic="Will retry recover?",
+            player_a_persona="",
+            player_b_persona="",
+            config=config,
+            session_id="session-retry",
+            on_model_retry=lambda round_number, speaker, delay, error: retry_events.append(
+                (round_number, speaker, delay, error)
+            ),
+        )
+
+        self.assertEqual([call["model"] for call in provider.calls], ["model-a", "model-a", "model-b"])
+        self.assertEqual(session.turns[0].status, "ok")
+        self.assertEqual(session.turns[0].response_text, "Recovered after retry")
+        self.assertEqual(retry_events[0][0:3], (1, "A", 0.5))
+        self.assertIn("429", retry_events[0][3])
+        self.assertEqual(sleeps, [0.5])
 
     def test_later_round_prompts_include_prior_transcript(self):
         provider = FakeProvider()
@@ -157,6 +224,37 @@ class EngineTests(unittest.TestCase):
         self.assertIn("your character only", user_prompt)
         self.assertNotIn("Debate the topic", system_prompt)
         self.assertNotIn("Open the debate", user_prompt)
+
+    def test_dialogue_mode_cleans_reasoning_labels_and_stage_directions_before_display(self):
+        provider = ThinkyDialogueProvider()
+        config = PromptStormConfig(
+            api_key="key",
+            player_a_model="model-a",
+            player_b_model="model-a",
+            report_model="model-report",
+        )
+        engine = DebateEngine(provider=provider, rounds=1, mode="dialogue")
+        displayed = []
+
+        session = engine.run(
+            topic="學生和老師討論考題是否公平。",
+            player_a_persona="老師",
+            player_b_persona="學生",
+            config=config,
+            session_id="session-clean-dialogue",
+            on_token=lambda speaker, token: displayed.append(token),
+        )
+
+        terminal_text = "".join(displayed)
+        self.assertFalse(provider.received_stream_callback)
+        self.assertNotIn("<think>", terminal_text)
+        self.assertNotIn("老師：", terminal_text)
+        self.assertNotIn("[眉頭微蹙]", terminal_text)
+        self.assertNotIn("學生：可是", terminal_text)
+        self.assertEqual(
+            session.turns[0].response_text,
+            "我原意是希望你們能靈活運用知識，但確實該提前說明跨章節題型的比例。你看這樣好嗎？",
+        )
 
     def test_continue_debate_adds_rounds_with_human_support_context(self):
         provider = FakeProvider()
