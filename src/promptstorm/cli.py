@@ -18,6 +18,8 @@ CYAN = "\033[36m"
 MAGENTA = "\033[35m"
 BOLD = "\033[1m"
 TURN_DIVIDER = "-" * 72
+DEFAULT_INITIAL_ROUNDS = 3
+DIALOGUE_INITIAL_ROUNDS = 1
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -94,6 +96,7 @@ def run_session(root: Path, mode: str) -> int:
     provider = VercelGatewayProvider(config.api_key)
     engine = DebateEngine(
         provider=provider,
+        rounds=initial_rounds_for_mode(profile.name),
         mode=profile.name,
         rate_limit_retries=2,
         rate_limit_retry_delay_seconds=30,
@@ -281,6 +284,12 @@ def _speaker_order_for_control_choice(profile: ModeProfile, control_choice: str)
     if profile.name == "dialogue" and control_choice == "B":
         return ("B", "A")
     return ("A", "B")
+
+
+def initial_rounds_for_mode(mode: str) -> int:
+    if mode == "dialogue":
+        return DIALOGUE_INITIAL_ROUNDS
+    return DEFAULT_INITIAL_ROUNDS
 
 
 def latest_model_error_summary(session) -> str:
