@@ -81,13 +81,6 @@ PromptStorm writes local history to:
 
 The `data/` directory is ignored by git.
 
-## Tests
-
-```bash
-.venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python -m compileall src tests main.py
-```
-
 ## Notes
 
 - `.env` parsing is implemented in `src/promptstorm/config.py`; `python-dotenv` is not required.
