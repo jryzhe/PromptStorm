@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-from typing import Callable, Protocol, Sequence
+from typing import Protocol, Sequence
 
 from .models import ModelResponse
 
 
 class ModelProvider(Protocol):
-    def complete_stream(
+    def complete(
         self,
         model: str,
         messages: Sequence[dict[str, str]],
-        on_token: Callable[[str], None] | None = None,
     ) -> ModelResponse:
-        """Stream or collect one model response."""
+        """Collect one model response."""
 
 
 class VercelGatewayProvider:
@@ -21,11 +20,10 @@ class VercelGatewayProvider:
         self.base_url = base_url
         self._client = None
 
-    def complete_stream(
+    def complete(
         self,
         model: str,
         messages: Sequence[dict[str, str]],
-        on_token: Callable[[str], None] | None = None,
     ) -> ModelResponse:
         client = self._get_client()
         stream = client.chat.completions.create(
@@ -44,8 +42,6 @@ class VercelGatewayProvider:
                 content = getattr(delta, "content", None)
                 if content:
                     parts.append(content)
-                    if on_token:
-                        on_token(content)
             usage = getattr(chunk, "usage", None)
             if usage:
                 tokens_used = int(getattr(usage, "total_tokens", 0) or tokens_used)

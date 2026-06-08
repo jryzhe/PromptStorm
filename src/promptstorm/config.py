@@ -19,11 +19,6 @@ CONFIG_KEYS = [
 ]
 
 
-def load_config(env_path: Path = Path(".env")) -> PromptStormConfig:
-    values = _read_env_file(env_path)
-    return _config_from_values(values)
-
-
 def load_config_from_paths(env_paths: Iterable[Path]) -> PromptStormConfig:
     values: dict[str, str] = {}
     for env_path in env_paths:

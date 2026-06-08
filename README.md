@@ -1,6 +1,6 @@
 # PromptStorm CLI
 
-PromptStorm lets two AI models run a terminal session through Vercel AI Gateway while you steer the conversation. It supports debates, collaborative discussions, and character dialogue.
+PromptStorm lets you steer terminal sessions between two AI participants through Vercel AI Gateway. It supports debates, collaborative discussions, and character dialogue.
 
 ## Features
 

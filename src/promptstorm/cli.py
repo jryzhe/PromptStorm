@@ -28,7 +28,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "setup":
-        return run_setup(Path.cwd())
+        return run_setup()
     if args.command in SESSION_MODE_NAMES:
         return run_session(Path.cwd(), args.command)
 
@@ -37,7 +37,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="promptstorm", description="Run a terminal session between two AI models.")
+    parser = argparse.ArgumentParser(
+        prog="promptstorm",
+        description="Run a terminal session between two AI participants.",
+    )
     subparsers = parser.add_subparsers(dest="command")
     subparsers.add_parser("setup", help="Create or update .env settings.")
     for mode in SESSION_MODE_NAMES:
@@ -46,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def run_setup(root: Path) -> int:
+def run_setup() -> int:
     env_path = default_env_path()
     key = getpass.getpass("AI_GATEWAY_API_KEY: ").strip()
     if not key:
@@ -56,10 +59,6 @@ def run_setup(root: Path) -> int:
     print(f"Saved API key and default model settings to {env_path}.")
     print("A .env file in the current directory can override these settings.")
     return 0
-
-
-def run_debate(root: Path) -> int:
-    return run_session(root, "debate")
 
 
 def run_session(root: Path, mode: str) -> int:
@@ -99,9 +98,9 @@ def run_session(root: Path, mode: str) -> int:
         last_heading_round = round_number
         print(format_turn_heading(round_number, speaker, persona, show_round_label=show_round_label))
 
-    def on_token(speaker: str, token: str) -> None:
+    def on_response(speaker: str, text: str) -> None:
         color = CYAN if speaker == "A" else MAGENTA
-        print(f"{color}{token}{RESET}", end="", flush=True)
+        print(f"{color}{text}{RESET}", end="", flush=True)
 
     def on_turn_end(round_number: int, speaker: str) -> None:
         print()
@@ -118,7 +117,7 @@ def run_session(root: Path, mode: str) -> int:
         player_b_persona=player_b,
         config=config,
         on_turn_start=on_turn_start,
-        on_token=on_token,
+        on_response=on_response,
         on_turn_end=on_turn_end,
         on_model_retry=on_model_retry,
     )
@@ -132,7 +131,7 @@ def run_session(root: Path, mode: str) -> int:
         config=config,
         profile=profile,
         on_turn_start=on_turn_start,
-        on_token=on_token,
+        on_response=on_response,
         on_turn_end=on_turn_end,
         on_model_retry=on_model_retry,
     )
@@ -177,7 +176,7 @@ def run_control_loop(
     config,
     profile: ModeProfile,
     on_turn_start,
-    on_token,
+    on_response,
     on_turn_end,
     on_model_retry=None,
 ) -> str:
@@ -199,7 +198,7 @@ def run_control_loop(
                 human_support=final_support,
                 rounds=rounds,
                 on_turn_start=on_turn_start,
-                on_token=on_token,
+                on_response=on_response,
                 on_turn_end=on_turn_end,
                 on_model_retry=on_model_retry,
             )
@@ -218,7 +217,7 @@ def run_control_loop(
                         human_support=final_support,
                         rounds=1,
                         on_turn_start=on_turn_start,
-                        on_token=on_token,
+                        on_response=on_response,
                         on_turn_end=on_turn_end,
                         on_model_retry=on_model_retry,
                     )
@@ -234,7 +233,7 @@ def run_control_loop(
                         human_support=final_support,
                         rounds=rounds,
                         on_turn_start=on_turn_start,
-                        on_token=on_token,
+                        on_response=on_response,
                         on_turn_end=on_turn_end,
                         on_model_retry=on_model_retry,
                     )
@@ -257,7 +256,7 @@ def continue_from_control_choice(
     human_support: str,
     rounds: int,
     on_turn_start,
-    on_token,
+    on_response,
     on_turn_end,
     on_model_retry=None,
 ) -> None:
@@ -268,7 +267,7 @@ def continue_from_control_choice(
         rounds=rounds,
         speaker_order=_speaker_order_for_control_choice(profile, control_choice),
         on_turn_start=on_turn_start,
-        on_token=on_token,
+        on_response=on_response,
         on_turn_end=on_turn_end,
         on_model_retry=on_model_retry,
     )

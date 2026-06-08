@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Callable
-
 from .models import DebateSession, DebateTurn, PromptStormConfig, normalize_verdict
 from .modes import detect_output_language, format_language_instruction, get_mode_profile
 from .provider import ModelProvider
@@ -17,12 +15,11 @@ class ConclusionWriter:
         verdict: str,
         config: PromptStormConfig,
         mode: str = "debate",
-        on_token: Callable[[str], None] | None = None,
     ) -> tuple[str, int]:
         profile = get_mode_profile(mode)
         normalized_verdict = normalize_verdict(verdict)
         output_language = detect_output_language(session.topic, *_human_inputs(session))
-        response = self.provider.complete_stream(
+        response = self.provider.complete(
             model=config.report_model,
             messages=[
                 {
@@ -31,7 +28,6 @@ class ConclusionWriter:
                 },
                 {"role": "user", "content": self._build_prompt(session, normalized_verdict, mode)},
             ],
-            on_token=on_token,
         )
         return response.text.strip(), response.tokens_used
 

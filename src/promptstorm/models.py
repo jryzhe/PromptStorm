@@ -30,20 +30,6 @@ class DebateTurn:
     status: str = "ok"
     error: str | None = None
 
-    def to_record(self) -> dict[str, object]:
-        return {
-            "session_id": self.session_id,
-            "round": self.round,
-            "speaker": self.speaker,
-            "persona": self.persona,
-            "model": self.model,
-            "response_text": self.response_text,
-            "tokens_used": self.tokens_used,
-            "timestamp": self.timestamp,
-            "status": self.status,
-            "error": self.error or "",
-        }
-
 
 @dataclass
 class DebateSession:
@@ -52,7 +38,6 @@ class DebateSession:
     player_a: str
     player_b: str
     topic: str
-    winner: str | None = None
     tokens_used: int = 0
     turns: list[DebateTurn] = field(default_factory=list)
 

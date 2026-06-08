@@ -50,7 +50,7 @@ class DebateEngine:
         config: PromptStormConfig,
         session_id: str | None = None,
         on_turn_start: Callable[[int, str, str], None] | None = None,
-        on_token: Callable[[str, str], None] | None = None,
+        on_response: Callable[[str, str], None] | None = None,
         on_turn_end: Callable[[int, str], None] | None = None,
         on_model_retry: Callable[[int, str, float, str], None] | None = None,
     ) -> DebateSession:
@@ -69,7 +69,7 @@ class DebateEngine:
             rounds=self.rounds,
             human_support=None,
             on_turn_start=on_turn_start,
-            on_token=on_token,
+            on_response=on_response,
             on_turn_end=on_turn_end,
             on_model_retry=on_model_retry,
         )
@@ -83,7 +83,7 @@ class DebateEngine:
         rounds: int,
         speaker_order: tuple[str, str] = ("A", "B"),
         on_turn_start: Callable[[int, str, str], None] | None = None,
-        on_token: Callable[[str, str], None] | None = None,
+        on_response: Callable[[str, str], None] | None = None,
         on_turn_end: Callable[[int, str], None] | None = None,
         on_model_retry: Callable[[int, str, float, str], None] | None = None,
     ) -> DebateSession:
@@ -95,7 +95,7 @@ class DebateEngine:
             human_support=human_support,
             speaker_order=speaker_order,
             on_turn_start=on_turn_start,
-            on_token=on_token,
+            on_response=on_response,
             on_turn_end=on_turn_end,
             on_model_retry=on_model_retry,
         )
@@ -125,7 +125,7 @@ class DebateEngine:
         human_support: str | None,
         speaker_order: tuple[str, str] = ("A", "B"),
         on_turn_start: Callable[[int, str, str], None] | None = None,
-        on_token: Callable[[str, str], None] | None = None,
+        on_response: Callable[[str, str], None] | None = None,
         on_turn_end: Callable[[int, str], None] | None = None,
         on_model_retry: Callable[[int, str, float, str], None] | None = None,
     ) -> None:
@@ -136,7 +136,7 @@ class DebateEngine:
                 if on_turn_start:
                     on_turn_start(round_number, speaker, persona)
                 try:
-                    response = self._complete_stream_with_retries(
+                    response = self._complete_with_retries(
                         model=model,
                         messages=_build_messages(
                             topic=session.topic,
@@ -180,8 +180,8 @@ class DebateEngine:
                         on_turn_end(round_number, speaker)
                     return
                 cleaned_text = clean_response(response.text, self.mode_profile)
-                if on_token and cleaned_text:
-                    on_token(speaker, cleaned_text)
+                if on_response and cleaned_text:
+                    on_response(speaker, cleaned_text)
                 session.turns.append(
                     DebateTurn(
                         session_id=session.session_id,
@@ -198,7 +198,7 @@ class DebateEngine:
                 if on_turn_end:
                     on_turn_end(round_number, speaker)
 
-    def _complete_stream_with_retries(
+    def _complete_with_retries(
         self,
         model: str,
         messages: list[dict[str, str]],
@@ -209,7 +209,7 @@ class DebateEngine:
         attempts = 0
         while True:
             try:
-                return self.provider.complete_stream(model=model, messages=messages, on_token=None)
+                return self.provider.complete(model=model, messages=messages)
             except Exception as exc:
                 error = _format_exception(exc)
                 if attempts >= self.rate_limit_retries or not _is_rate_limit_error(error):
