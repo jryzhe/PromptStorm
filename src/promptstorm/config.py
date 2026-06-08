@@ -7,9 +7,9 @@ from typing import Iterable
 from .models import PromptStormConfig
 
 
-DEFAULT_PLAYER_A_MODEL = "google/gemini-3-flash"
-DEFAULT_PLAYER_B_MODEL = "anthropic/claude-sonnet-4.6"
-DEFAULT_REPORT_MODEL = "anthropic/claude-sonnet-4.6"
+DEFAULT_PLAYER_A_MODEL = "google/gemini-3.1-flash-lite"
+DEFAULT_PLAYER_B_MODEL = "alibaba/qwen-3-32b"
+DEFAULT_REPORT_MODEL = "openai/gpt-oss-120b"
 
 CONFIG_KEYS = [
     "AI_GATEWAY_API_KEY",
