@@ -54,6 +54,13 @@ promptstorm setup
 - macOS / Linux: `~/.config/promptstorm/.env`
 - Windows: `%APPDATA%\promptstorm\.env`
 
+After entering your API key, `setup` prompts for the Player A, Player B, and report models.
+Use models available in your Vercel AI Gateway account:
+
+```text
+https://vercel.com/ -> ai-gateway -> models
+```
+
 Environment variables override config values. A `.env` file in the current directory can also override the global config for that folder.
 
 ## Usage

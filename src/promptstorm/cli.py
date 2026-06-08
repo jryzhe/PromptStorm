@@ -51,14 +51,31 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run_setup() -> int:
     env_path = default_env_path()
+    current_config = load_config_from_paths([env_path])
     key = getpass.getpass("AI_GATEWAY_API_KEY: ").strip()
     if not key:
         print("No key entered; .env was not changed.")
         return 1
-    save_api_key(env_path, key)
-    print(f"Saved API key and default model settings to {env_path}.")
+    print("Choose models available to your Vercel AI Gateway account.")
+    print("Go to https://vercel.com/ -> ai-gateway -> models")
+    player_a_model = prompt_model("Player A model", current_config.player_a_model)
+    player_b_model = prompt_model("Player B model", current_config.player_b_model)
+    report_model = prompt_model("Report model", current_config.report_model)
+    save_api_key(
+        env_path,
+        key,
+        player_a_model=player_a_model,
+        player_b_model=player_b_model,
+        report_model=report_model,
+    )
+    print(f"Saved API key and model settings to {env_path}.")
     print("A .env file in the current directory can override these settings.")
     return 0
+
+
+def prompt_model(label: str, default: str) -> str:
+    model = input(f"{label} [{default}]: ").strip()
+    return model or default
 
 
 def run_session(root: Path, mode: str) -> int:

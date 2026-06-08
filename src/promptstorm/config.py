@@ -41,12 +41,27 @@ def _config_from_values(values: dict[str, str]) -> PromptStormConfig:
     )
 
 
-def save_api_key(env_path: Path, api_key: str) -> None:
+def save_api_key(
+    env_path: Path,
+    api_key: str,
+    player_a_model: str | None = None,
+    player_b_model: str | None = None,
+    report_model: str | None = None,
+) -> None:
     values = _read_env_file(env_path)
     values["AI_GATEWAY_API_KEY"] = api_key
-    values.setdefault("PLAYER_A_MODEL", DEFAULT_PLAYER_A_MODEL)
-    values.setdefault("PLAYER_B_MODEL", DEFAULT_PLAYER_B_MODEL)
-    values.setdefault("REPORT_MODEL", DEFAULT_REPORT_MODEL)
+    if player_a_model is None:
+        values.setdefault("PLAYER_A_MODEL", DEFAULT_PLAYER_A_MODEL)
+    else:
+        values["PLAYER_A_MODEL"] = player_a_model
+    if player_b_model is None:
+        values.setdefault("PLAYER_B_MODEL", DEFAULT_PLAYER_B_MODEL)
+    else:
+        values["PLAYER_B_MODEL"] = player_b_model
+    if report_model is None:
+        values.setdefault("REPORT_MODEL", DEFAULT_REPORT_MODEL)
+    else:
+        values["REPORT_MODEL"] = report_model
     env_path.parent.mkdir(parents=True, exist_ok=True)
     env_path.write_text(_format_env(values), encoding="utf-8")
 
