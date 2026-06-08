@@ -15,34 +15,38 @@ PromptStorm lets two AI models run a terminal session through Vercel AI Gateway 
 - A Vercel AI Gateway API key
 - Gateway credits or billing enabled
 
-## Setup
+## Install
+
+### macOS / Linux
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -e .
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+python3 -m pipx install git+https://github.com/jryzhe/PromptStorm.git
 ```
 
-Create `.env`:
+### Windows PowerShell
+
+```powershell
+py -m pip install --user pipx
+py -m pipx ensurepath
+py -m pipx install git+https://github.com/jryzhe/PromptStorm.git
+```
+
+Restart your terminal if `promptstorm` is not found after installation.
+
+## Setup
 
 ```bash
 promptstorm setup
 ```
 
-Or copy the example manually:
+`setup` stores your API key and default models in the user config directory:
 
-```bash
-cp .env.example .env
-```
+- macOS / Linux: `~/.config/promptstorm/.env`
+- Windows: `%APPDATA%\promptstorm\.env`
 
-```env
-AI_GATEWAY_API_KEY=your-vercel-ai-gateway-key
-PLAYER_A_MODEL=google/gemini-3-flash
-PLAYER_B_MODEL=anthropic/claude-sonnet-4.6
-REPORT_MODEL=anthropic/claude-sonnet-4.6
-```
-
-Environment variables override `.env`. If model values are missing, PromptStorm uses the defaults in `src/promptstorm/config.py`.
+Environment variables override config values. A `.env` file in the current directory can also override the global config for that folder.
 
 ## Usage
 
@@ -53,9 +57,10 @@ promptstorm dialogue
 promptstorm stats
 ```
 
-Compatibility entrypoints:
+For local development from a cloned repo:
 
 ```bash
+python3 -m pip install -e .
 python3 main.py debate
 python3 -m promptstorm --help
 ```
@@ -74,12 +79,12 @@ After the initial turns, the control panel lets you choose whether A, B, or neit
 
 ## Output
 
-PromptStorm writes local history to:
+PromptStorm writes history to the user data directory:
 
-- `data/debate_history.csv`
-- `data/debate_turns.jsonl`
+- macOS / Linux: `~/.local/share/promptstorm/data/`
+- Windows: `%LOCALAPPDATA%\promptstorm\data\`
 
-The `data/` directory is ignored by git.
+The files are `debate_history.csv` and `debate_turns.jsonl`.
 
 ## Notes
 

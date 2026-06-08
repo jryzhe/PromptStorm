@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Iterable
 
 from .models import PromptStormConfig
 
@@ -20,6 +21,19 @@ CONFIG_KEYS = [
 
 def load_config(env_path: Path = Path(".env")) -> PromptStormConfig:
     values = _read_env_file(env_path)
+    return _config_from_values(values)
+
+
+def load_config_from_paths(env_paths: Iterable[Path]) -> PromptStormConfig:
+    values: dict[str, str] = {}
+    for env_path in env_paths:
+        for key, value in _read_env_file(env_path).items():
+            if value:
+                values[key] = value
+    return _config_from_values(values)
+
+
+def _config_from_values(values: dict[str, str]) -> PromptStormConfig:
     for key in CONFIG_KEYS:
         if os.environ.get(key):
             values[key] = os.environ[key]
@@ -38,6 +52,7 @@ def save_api_key(env_path: Path, api_key: str) -> None:
     values.setdefault("PLAYER_A_MODEL", DEFAULT_PLAYER_A_MODEL)
     values.setdefault("PLAYER_B_MODEL", DEFAULT_PLAYER_B_MODEL)
     values.setdefault("REPORT_MODEL", DEFAULT_REPORT_MODEL)
+    env_path.parent.mkdir(parents=True, exist_ok=True)
     env_path.write_text(_format_env(values), encoding="utf-8")
 
 

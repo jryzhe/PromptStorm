@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import os
 from pathlib import Path
 from typing import Sequence
 
 from .audit import AuditStore
-from .config import load_config, save_api_key
+from .config import load_config_from_paths, save_api_key
 from .engine import DebateEngine
 from .modes import SESSION_MODE_NAMES, ModeProfile, get_mode_profile
 from .provider import VercelGatewayProvider
@@ -20,6 +21,7 @@ BOLD = "\033[1m"
 TURN_DIVIDER = "-" * 72
 DEFAULT_INITIAL_ROUNDS = 3
 DIALOGUE_INITIAL_ROUNDS = 1
+APP_DIR_NAME = "promptstorm"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -53,18 +55,19 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run_setup(root: Path) -> int:
-    env_path = root / ".env"
+    env_path = default_env_path()
     key = getpass.getpass("AI_GATEWAY_API_KEY: ").strip()
     if not key:
         print("No key entered; .env was not changed.")
         return 1
     save_api_key(env_path, key)
     print(f"Saved API key and default model settings to {env_path}.")
+    print("A .env file in the current directory can override these settings.")
     return 0
 
 
 def run_stats(root: Path) -> int:
-    print(AuditStore(root / "data").format_stats())
+    print(AuditStore(default_data_dir()).format_stats())
     return 0
 
 
@@ -74,8 +77,8 @@ def run_debate(root: Path) -> int:
 
 def run_session(root: Path, mode: str) -> int:
     profile = get_mode_profile(mode)
-    env_path = root / ".env"
-    config = load_config(env_path)
+    env_path = default_env_path()
+    config = load_config_from_paths(config_paths(root))
     if not config.api_key:
         print("Missing AI_GATEWAY_API_KEY.")
         key = getpass.getpass("Paste your Vercel AI Gateway key: ").strip()
@@ -83,7 +86,7 @@ def run_session(root: Path, mode: str) -> int:
             print(f"Cannot run {profile.name} without AI_GATEWAY_API_KEY.")
             return 1
         save_api_key(env_path, key)
-        config = load_config(env_path)
+        config = load_config_from_paths(config_paths(root))
 
     print(f"{BOLD}{profile.title}{RESET}")
     player_a = input("Player A persona > ").strip()
@@ -161,9 +164,42 @@ def run_session(root: Path, mode: str) -> int:
     session.winner = final_support
     session.tokens_used += conclusion_tokens
 
-    AuditStore(root / "data").record_session(session)
-    print("Audit: data/debate_history.csv and data/debate_turns.jsonl")
+    data_dir = default_data_dir()
+    AuditStore(data_dir).record_session(session)
+    print(f"Audit: {data_dir / 'debate_history.csv'} and {data_dir / 'debate_turns.jsonl'}")
     return 0
+
+
+def config_paths(root: Path) -> list[Path]:
+    paths = [default_env_path()]
+    local_env_path = root / ".env"
+    if local_env_path.exists():
+        paths.append(local_env_path)
+    return paths
+
+
+def default_env_path() -> Path:
+    return default_config_dir() / ".env"
+
+
+def default_config_dir() -> Path:
+    if os.name == "nt":
+        base = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
+    else:
+        base = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    return Path(base) / APP_DIR_NAME
+
+
+def default_data_dir() -> Path:
+    if os.name == "nt":
+        base = (
+            os.environ.get("LOCALAPPDATA")
+            or os.environ.get("APPDATA")
+            or str(Path.home() / "AppData" / "Local")
+        )
+    else:
+        base = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
+    return Path(base) / APP_DIR_NAME / "data"
 
 
 def run_control_loop(
