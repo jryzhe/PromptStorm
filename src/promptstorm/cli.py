@@ -154,7 +154,7 @@ def run_session(root: Path, mode: str) -> int:
     )
     writer = ConclusionWriter(provider=provider)
     print(f"\nOutputting {profile.output_label}...\n")
-    conclusion, _conclusion_tokens, used_fallback = write_conclusion_safely(
+    conclusion, used_fallback = write_conclusion_safely(
         writer,
         session,
         final_support,
@@ -370,13 +370,13 @@ def format_turn_heading(
     return "\n".join(lines)
 
 
-def write_conclusion_safely(writer, session, verdict: str, config, mode: str = "debate") -> tuple[str, int, bool]:
+def write_conclusion_safely(writer, session, verdict: str, config, mode: str = "debate") -> tuple[str, bool]:
     try:
-        conclusion, conclusion_tokens = writer.generate_conclusion(session, verdict, config, mode=mode)
-        return conclusion, conclusion_tokens, False
+        conclusion = writer.generate_conclusion(session, verdict, config, mode=mode)
+        return conclusion, False
     except Exception as exc:
         reason = f"{exc.__class__.__name__}: {exc}"
-        return writer.build_fallback_conclusion(session, verdict, reason, mode=mode), 0, True
+        return writer.build_fallback_conclusion(session, verdict, reason, mode=mode), True
 
 
 def session_has_model_error(session) -> bool:

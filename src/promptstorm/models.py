@@ -14,7 +14,6 @@ class PromptStormConfig:
 @dataclass
 class ModelResponse:
     text: str
-    tokens_used: int = 0
 
 
 @dataclass
@@ -25,7 +24,6 @@ class DebateTurn:
     persona: str
     model: str
     response_text: str
-    tokens_used: int
     timestamp: str
     status: str = "ok"
     error: str | None = None
@@ -38,7 +36,6 @@ class DebateSession:
     player_a: str
     player_b: str
     topic: str
-    tokens_used: int = 0
     turns: list[DebateTurn] = field(default_factory=list)
 
 

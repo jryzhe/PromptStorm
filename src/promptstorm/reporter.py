@@ -15,7 +15,7 @@ class ConclusionWriter:
         verdict: str,
         config: PromptStormConfig,
         mode: str = "debate",
-    ) -> tuple[str, int]:
+    ) -> str:
         profile = get_mode_profile(mode)
         normalized_verdict = normalize_verdict(verdict)
         output_language = detect_output_language(session.topic, *_human_inputs(session))
@@ -29,7 +29,7 @@ class ConclusionWriter:
                 {"role": "user", "content": self._build_prompt(session, normalized_verdict, mode)},
             ],
         )
-        return response.text.strip(), response.tokens_used
+        return response.text.strip()
 
     def build_fallback_conclusion(
         self,

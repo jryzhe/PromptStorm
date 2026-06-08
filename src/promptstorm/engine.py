@@ -110,7 +110,6 @@ class DebateEngine:
                 persona="Human",
                 model="human",
                 response_text=text.strip(),
-                tokens_used=0,
                 timestamp=_now(),
             )
         )
@@ -136,7 +135,7 @@ class DebateEngine:
                 if on_turn_start:
                     on_turn_start(round_number, speaker, persona)
                 try:
-                    response = self._complete_with_retries(
+                    response, streamed = self._complete_with_retries(
                         model=model,
                         messages=_build_messages(
                             topic=session.topic,
@@ -158,6 +157,11 @@ class DebateEngine:
                         ),
                         round_number=round_number,
                         speaker=speaker,
+                        on_delta=(
+                            (lambda text, active_speaker=speaker: on_response(active_speaker, text))
+                            if on_response
+                            else None
+                        ),
                         on_model_retry=on_model_retry,
                     )
                 except Exception as exc:
@@ -170,7 +174,6 @@ class DebateEngine:
                             persona=persona,
                             model=model,
                             response_text="The model did not produce a response.",
-                            tokens_used=0,
                             timestamp=_now(),
                             status="error",
                             error=error,
@@ -180,7 +183,7 @@ class DebateEngine:
                         on_turn_end(round_number, speaker)
                     return
                 cleaned_text = clean_response(response.text, self.mode_profile)
-                if on_response and cleaned_text:
+                if on_response and cleaned_text and not streamed:
                     on_response(speaker, cleaned_text)
                 session.turns.append(
                     DebateTurn(
@@ -190,11 +193,9 @@ class DebateEngine:
                         persona=persona,
                         model=model,
                         response_text=cleaned_text,
-                        tokens_used=response.tokens_used,
                         timestamp=_now(),
                     )
                 )
-                session.tokens_used += response.tokens_used
                 if on_turn_end:
                     on_turn_end(round_number, speaker)
 
@@ -204,15 +205,27 @@ class DebateEngine:
         messages: list[dict[str, str]],
         round_number: int,
         speaker: str,
+        on_delta: Callable[[str], None] | None,
         on_model_retry: Callable[[int, str, float, str], None] | None,
-    ) -> object:
+    ) -> tuple[object, bool]:
         attempts = 0
         while True:
+            emitted_delta = False
+
+            def emit_delta(text: str) -> None:
+                nonlocal emitted_delta
+                emitted_delta = True
+                if on_delta:
+                    on_delta(text)
+
             try:
-                return self.provider.complete(model=model, messages=messages)
+                stream_complete = getattr(self.provider, "stream_complete", None)
+                if on_delta and callable(stream_complete):
+                    return stream_complete(model=model, messages=messages, on_delta=emit_delta), True
+                return self.provider.complete(model=model, messages=messages), False
             except Exception as exc:
                 error = _format_exception(exc)
-                if attempts >= self.rate_limit_retries or not _is_rate_limit_error(error):
+                if emitted_delta or attempts >= self.rate_limit_retries or not _is_rate_limit_error(error):
                     raise
                 attempts += 1
                 delay = self.rate_limit_retry_delay_seconds

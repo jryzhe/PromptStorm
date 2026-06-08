@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol, Sequence
+from typing import Callable, Protocol, Sequence
 
 from .models import ModelResponse
 
@@ -25,16 +25,22 @@ class VercelGatewayProvider:
         model: str,
         messages: Sequence[dict[str, str]],
     ) -> ModelResponse:
+        return self.stream_complete(model=model, messages=messages)
+
+    def stream_complete(
+        self,
+        model: str,
+        messages: Sequence[dict[str, str]],
+        on_delta: Callable[[str], None] | None = None,
+    ) -> ModelResponse:
         client = self._get_client()
         stream = client.chat.completions.create(
             model=model,
             messages=list(messages),
             stream=True,
-            stream_options={"include_usage": True},
         )
 
         parts: list[str] = []
-        tokens_used = 0
         for chunk in stream:
             choices = getattr(chunk, "choices", None) or []
             if choices:
@@ -42,12 +48,11 @@ class VercelGatewayProvider:
                 content = getattr(delta, "content", None)
                 if content:
                     parts.append(content)
-            usage = getattr(chunk, "usage", None)
-            if usage:
-                tokens_used = int(getattr(usage, "total_tokens", 0) or tokens_used)
+                    if on_delta:
+                        on_delta(content)
 
         text = "".join(parts)
-        return ModelResponse(text=text, tokens_used=tokens_used or _estimate_tokens(text))
+        return ModelResponse(text=text)
 
     def _get_client(self):
         if self._client is not None:
@@ -63,7 +68,3 @@ class VercelGatewayProvider:
 
         self._client = OpenAI(api_key=self.api_key, base_url=self.base_url)
         return self._client
-
-
-def _estimate_tokens(text: str) -> int:
-    return max(1, len(text.split()))
