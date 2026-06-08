@@ -17,10 +17,19 @@ PromptStorm lets two AI models run a terminal session through Vercel AI Gateway 
 
 ## Install
 
-### macOS / Linux
+### macOS
 
 ```bash
-python3 -m pip install --user pipx
+brew install pipx
+pipx ensurepath
+pipx install git+https://github.com/jryzhe/PromptStorm.git
+```
+
+### Linux
+
+Install `pipx` with your package manager, then install PromptStorm:
+
+```bash
 python3 -m pipx ensurepath
 python3 -m pipx install git+https://github.com/jryzhe/PromptStorm.git
 ```
