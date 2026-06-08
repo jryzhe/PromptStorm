@@ -7,7 +7,6 @@ PromptStorm lets two AI models run a terminal session through Vercel AI Gateway 
 - Run `debate`, `discussion`, or `dialogue` sessions from the terminal.
 - Configure two participant models and one conclusion model.
 - Add human input between model turns.
-- Save session stats and turn transcripts locally.
 
 ## Requirements
 
@@ -63,7 +62,6 @@ Environment variables override config values. A `.env` file in the current direc
 promptstorm debate
 promptstorm discussion
 promptstorm dialogue
-promptstorm stats
 ```
 
 For local development from a cloned repo:
@@ -86,17 +84,8 @@ Personas are optional. Topic is required.
 
 After the initial turns, the control panel lets you choose whether A, B, or neither currently has the stronger direction, add your own input, continue for more rounds, or output the final conclusion.
 
-## Output
-
-PromptStorm writes history to the user data directory:
-
-- macOS / Linux: `~/.local/share/promptstorm/data/`
-- Windows: `%LOCALAPPDATA%\promptstorm\data\`
-
-The files are `debate_history.csv` and `debate_turns.jsonl`.
-
 ## Notes
 
 - `.env` parsing is implemented in `src/promptstorm/config.py`; `python-dotenv` is not required.
-- If a live model is rate-limited, PromptStorm records the failed turn and preserves the partial transcript.
+- If a live model is rate-limited, PromptStorm stops the remaining model turns and lets you finish with the available transcript.
 - If the conclusion model fails, PromptStorm prints a local fallback summary instead of losing the session.
