@@ -21,6 +21,7 @@ TURN_DIVIDER = "-" * 72
 DEFAULT_INITIAL_ROUNDS = 3
 DIALOGUE_INITIAL_ROUNDS = 1
 APP_DIR_NAME = "promptstorm"
+CONTINUE_CHOICES = {"A", "B", "R"}
 _EDITABLE_INPUT_READY = False
 
 
@@ -130,7 +131,14 @@ def run_session(root: Path, mode: str) -> int:
         nonlocal last_heading_round
         show_round_label = round_number != last_heading_round
         last_heading_round = round_number
-        print(format_turn_heading(round_number, speaker, persona, show_round_label=show_round_label))
+        print(
+            format_turn_heading(
+                round_number,
+                speaker,
+                persona,
+                show_round_label=show_round_label,
+            )
+        )
 
     def on_response(speaker: str, text: str) -> None:
         color = CYAN if speaker == "A" else MAGENTA
@@ -156,8 +164,7 @@ def run_session(root: Path, mode: str) -> int:
         on_model_retry=on_model_retry,
     )
     if session_has_model_error(session):
-        print(f"\nA model call failed during the {profile.name}: {latest_model_error_summary(session)}")
-        print("Continuing with the partial transcript.")
+        print_model_error_notice(profile, session, "Continuing with the partial transcript.")
 
     final_support = run_control_loop(
         engine=engine,
@@ -215,62 +222,44 @@ def run_control_loop(
     on_model_retry=None,
 ) -> str:
     final_support = "TIE"
+
+    def continue_with_choice(control_choice: str, rounds: int) -> None:
+        nonlocal final_support
+        final_support = _support_from_control_choice(control_choice)
+        continue_from_control_choice(
+            engine=engine,
+            session=session,
+            config=config,
+            profile=profile,
+            control_choice=control_choice,
+            human_support=final_support,
+            rounds=rounds,
+            on_turn_start=on_turn_start,
+            on_response=on_response,
+            on_turn_end=on_turn_end,
+            on_model_retry=on_model_retry,
+        )
+
     while True:
         print("\nControl:")
         for line in profile.control_lines:
             print(line)
         choice = prompt_text("請選擇 > ").strip().upper()
-        if choice in {"A", "B", "R"}:
-            final_support = _support_from_control_choice(choice)
-            rounds = prompt_for_round_count()
-            continue_from_control_choice(
-                engine=engine,
-                session=session,
-                config=config,
-                profile=profile,
-                control_choice=choice,
-                human_support=final_support,
-                rounds=rounds,
-                on_turn_start=on_turn_start,
-                on_response=on_response,
-                on_turn_end=on_turn_end,
-                on_model_retry=on_model_retry,
-            )
+        if choice in CONTINUE_CHOICES:
+            continue_with_choice(choice, prompt_for_round_count())
         elif choice == "I":
             human_text = prompt_text("你的補充 > ").strip()
             if human_text:
                 engine.add_human_input(session, human_text)
-                next_choice = prompt_text("已記錄補充。按 Enter 以目前方向繼續 1 回合，或輸入 A/B/R/O > ").strip().upper()
+                followup_prompt = (
+                    "已記錄補充。按 Enter 以目前方向繼續 1 回合，"
+                    "或輸入 A/B/R/O > "
+                )
+                next_choice = prompt_text(followup_prompt).strip().upper()
                 if not next_choice:
-                    continue_from_control_choice(
-                        engine=engine,
-                        session=session,
-                        config=config,
-                        profile=profile,
-                        control_choice=_control_choice_from_support(final_support),
-                        human_support=final_support,
-                        rounds=1,
-                        on_turn_start=on_turn_start,
-                        on_response=on_response,
-                        on_turn_end=on_turn_end,
-                        on_model_retry=on_model_retry,
-                    )
-                elif next_choice in {"A", "B", "R"}:
-                    final_support = _support_from_control_choice(next_choice)
-                    rounds = prompt_for_round_count()
-                    continue_from_control_choice(
-                        engine=engine,
-                        session=session,
-                        config=config,
-                        profile=profile,
-                        control_choice=next_choice,
-                        human_support=final_support,
-                        rounds=rounds,
-                        on_turn_start=on_turn_start,
-                        on_response=on_response,
-                        on_turn_end=on_turn_end,
-                        on_model_retry=on_model_retry,
-                    )
+                    continue_with_choice(_control_choice_from_support(final_support), 1)
+                elif next_choice in CONTINUE_CHOICES:
+                    continue_with_choice(next_choice, prompt_for_round_count())
                 elif next_choice == "O":
                     return final_support
                 else:
@@ -306,8 +295,11 @@ def continue_from_control_choice(
         on_model_retry=on_model_retry,
     )
     if session_has_model_error(session):
-        print(f"\nA model call failed during the {profile.name}: {latest_model_error_summary(session)}")
-        print("You can add input or output the current transcript.")
+        print_model_error_notice(
+            profile,
+            session,
+            "You can add input or output the current transcript.",
+        )
 
 
 def _support_from_control_choice(choice: str) -> str:
@@ -318,7 +310,10 @@ def _control_choice_from_support(human_support: str) -> str:
     return "R" if human_support == "TIE" else human_support
 
 
-def _speaker_order_for_control_choice(profile: ModeProfile, control_choice: str) -> tuple[str, str]:
+def _speaker_order_for_control_choice(
+    profile: ModeProfile,
+    control_choice: str,
+) -> tuple[str, str]:
     if profile.name == "dialogue" and control_choice == "B":
         return ("B", "A")
     return ("A", "B")
@@ -328,6 +323,12 @@ def initial_rounds_for_mode(mode: str) -> int:
     if mode == "dialogue":
         return DIALOGUE_INITIAL_ROUNDS
     return DEFAULT_INITIAL_ROUNDS
+
+
+def print_model_error_notice(profile: ModeProfile, session, next_step: str) -> None:
+    summary = latest_model_error_summary(session)
+    print(f"\nA model call failed during the {profile.name}: {summary}")
+    print(next_step)
 
 
 def latest_model_error_summary(session) -> str:
@@ -351,7 +352,9 @@ def summarize_model_error(error: str) -> str:
 def prompt_for_round_count() -> int:
     while True:
         try:
-            return parse_round_count(prompt_text("要繼續幾回合？（每回合兩位各回一句）[1] > "))
+            return parse_round_count(
+                prompt_text("要繼續幾回合？（每回合兩位各回一句）[1] > ")
+            )
         except ValueError:
             print("請輸入正整數。")
 
@@ -387,7 +390,13 @@ def format_turn_heading(
     return "\n".join(lines)
 
 
-def write_conclusion_safely(writer, session, verdict: str, config, mode: str = "debate") -> tuple[str, bool]:
+def write_conclusion_safely(
+    writer,
+    session,
+    verdict: str,
+    config,
+    mode: str = "debate",
+) -> tuple[str, bool]:
     try:
         conclusion = writer.generate_conclusion(session, verdict, config, mode=mode)
         return conclusion, False

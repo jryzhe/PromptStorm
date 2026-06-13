@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 
@@ -46,3 +47,22 @@ def normalize_verdict(raw_value: str) -> str:
     if value in {"C", "TIE", "DRAW"}:
         return "TIE"
     raise ValueError("Verdict must be A, B, or C.")
+
+
+def format_transcript(turns: Iterable[DebateTurn]) -> str:
+    return "\n".join(format_turn(turn) for turn in turns)
+
+
+def format_turn(turn: DebateTurn) -> str:
+    if turn.speaker == "USER":
+        if turn.round > 0:
+            return f"Human input after Round {turn.round}: {turn.response_text}"
+        return f"Human input before Round 1: {turn.response_text}"
+    if turn.status == "error":
+        detail = f" ({turn.error})" if turn.error else ""
+        return f"Round {turn.round} [{turn.speaker}: {turn.persona}] Model call failed{detail}"
+    return f"Round {turn.round} [{turn.speaker}: {turn.persona}] {turn.response_text}"
+
+
+def human_inputs(session: DebateSession) -> list[str]:
+    return [turn.response_text for turn in session.turns if turn.speaker == "USER"]

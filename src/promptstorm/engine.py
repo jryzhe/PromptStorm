@@ -6,8 +6,19 @@ from time import sleep as default_sleep
 from typing import Callable
 from uuid import uuid4
 
-from .models import DebateSession, DebateTurn, PromptStormConfig
-from .modes import ModeProfile, detect_output_language, format_language_instruction, get_mode_profile
+from .models import (
+    DebateSession,
+    DebateTurn,
+    PromptStormConfig,
+    format_transcript,
+    human_inputs,
+)
+from .modes import (
+    ModeProfile,
+    detect_output_language,
+    format_language_instruction,
+    get_mode_profile,
+)
 from .provider import ModelProvider
 
 
@@ -135,6 +146,11 @@ class DebateEngine:
                 if on_turn_start:
                     on_turn_start(round_number, speaker, persona)
                 try:
+                    on_delta = None
+                    if on_response:
+                        def on_delta(text: str, active_speaker: str = speaker) -> None:
+                            on_response(active_speaker, text)
+
                     response, streamed = self._complete_with_retries(
                         model=model,
                         messages=_build_messages(
@@ -142,26 +158,22 @@ class DebateEngine:
                             round_number=round_number,
                             speaker=speaker,
                             persona=persona,
-                            opponent=session.player_b if speaker == "A" else session.player_a,
-                            transcript=_format_transcript(session.turns),
+                            opponent=(
+                                session.player_b
+                                if speaker == "A"
+                                else session.player_a
+                            ),
+                            transcript=format_transcript(session.turns),
                             human_support=human_support,
                             profile=self.mode_profile,
                             output_language=detect_output_language(
                                 session.topic,
-                                *[
-                                    turn.response_text
-                                    for turn in session.turns
-                                    if turn.speaker == "USER"
-                                ],
+                                *human_inputs(session),
                             ),
                         ),
                         round_number=round_number,
                         speaker=speaker,
-                        on_delta=(
-                            (lambda text, active_speaker=speaker: on_response(active_speaker, text))
-                            if on_response
-                            else None
-                        ),
+                        on_delta=on_delta,
                         on_model_retry=on_model_retry,
                     )
                 except Exception as exc:
@@ -221,11 +233,20 @@ class DebateEngine:
             try:
                 stream_complete = getattr(self.provider, "stream_complete", None)
                 if on_delta and callable(stream_complete):
-                    return stream_complete(model=model, messages=messages, on_delta=emit_delta), True
+                    response = stream_complete(
+                        model=model,
+                        messages=messages,
+                        on_delta=emit_delta,
+                    )
+                    return response, True
                 return self.provider.complete(model=model, messages=messages), False
             except Exception as exc:
                 error = _format_exception(exc)
-                if emitted_delta or attempts >= self.rate_limit_retries or not _is_rate_limit_error(error):
+                if (
+                    emitted_delta
+                    or attempts >= self.rate_limit_retries
+                    or not _is_rate_limit_error(error)
+                ):
                     raise
                 attempts += 1
                 delay = self.rate_limit_retry_delay_seconds
@@ -293,10 +314,11 @@ def _strip_leading_speaker_label(text: str) -> str:
 
 def _strip_leading_stage_directions(text: str) -> str:
     cleaned = text
+    stage_direction_pattern = r"^\s*(?:（[^）]*）|\([^)]*\)|\[[^\]]*\]|【[^】]*】)\s*"
     changed = True
     while changed:
         changed = False
-        updated = re.sub(r"^\s*(?:（[^）]*）|\([^)]*\)|\[[^\]]*\]|【[^】]*】)\s*", "", cleaned, count=1)
+        updated = re.sub(stage_direction_pattern, "", cleaned, count=1)
         if updated != cleaned:
             cleaned = updated
             changed = True
@@ -348,21 +370,6 @@ def _build_messages(
         {"role": "system", "content": system},
         {"role": "user", "content": user_prompt},
     ]
-
-
-def _format_transcript(turns: list[DebateTurn]) -> str:
-    return "\n".join(_format_turn(turn) for turn in turns)
-
-
-def _format_turn(turn: DebateTurn) -> str:
-    if turn.speaker == "USER":
-        if turn.round > 0:
-            return f"Human input after Round {turn.round}: {turn.response_text}"
-        return f"Human input before Round 1: {turn.response_text}"
-    if turn.status == "error":
-        detail = f" ({turn.error})" if turn.error else ""
-        return f"Round {turn.round} [{turn.speaker}: {turn.persona}] Model call failed{detail}"
-    return f"Round {turn.round} [{turn.speaker}: {turn.persona}] {turn.response_text}"
 
 
 def _display_persona(persona: str, speaker: str, profile: ModeProfile) -> str:
