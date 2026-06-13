@@ -21,6 +21,7 @@ TURN_DIVIDER = "-" * 72
 DEFAULT_INITIAL_ROUNDS = 3
 DIALOGUE_INITIAL_ROUNDS = 1
 APP_DIR_NAME = "promptstorm"
+_EDITABLE_INPUT_READY = False
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -74,8 +75,24 @@ def run_setup() -> int:
 
 
 def prompt_model(label: str, default: str) -> str:
-    model = input(f"{label} [{default}]: ").strip()
+    model = prompt_text(f"{label} [{default}]: ").strip()
     return model or default
+
+
+def prompt_text(prompt: str) -> str:
+    enable_editable_input()
+    return input(prompt)
+
+
+def enable_editable_input() -> None:
+    global _EDITABLE_INPUT_READY
+    if _EDITABLE_INPUT_READY:
+        return
+    try:
+        import readline  # noqa: F401
+    except ImportError:
+        pass
+    _EDITABLE_INPUT_READY = True
 
 
 def run_session(root: Path, mode: str) -> int:
@@ -92,9 +109,9 @@ def run_session(root: Path, mode: str) -> int:
         config = load_config_from_paths(config_paths(root))
 
     print(f"{BOLD}{profile.title}{RESET}")
-    player_a = input("Player A persona > ").strip()
-    player_b = input("Player B persona > ").strip()
-    topic = input("Topic > ").strip()
+    player_a = prompt_text("Player A persona > ").strip()
+    player_b = prompt_text("Player B persona > ").strip()
+    topic = prompt_text("Topic > ").strip()
     if not topic:
         print("Topic is required.")
         return 1
@@ -202,7 +219,7 @@ def run_control_loop(
         print("\nControl:")
         for line in profile.control_lines:
             print(line)
-        choice = input("請選擇 > ").strip().upper()
+        choice = prompt_text("請選擇 > ").strip().upper()
         if choice in {"A", "B", "R"}:
             final_support = _support_from_control_choice(choice)
             rounds = prompt_for_round_count()
@@ -220,10 +237,10 @@ def run_control_loop(
                 on_model_retry=on_model_retry,
             )
         elif choice == "I":
-            human_text = input("你的補充 > ").strip()
+            human_text = prompt_text("你的補充 > ").strip()
             if human_text:
                 engine.add_human_input(session, human_text)
-                next_choice = input("已記錄補充。按 Enter 以目前方向繼續 1 回合，或輸入 A/B/R/O > ").strip().upper()
+                next_choice = prompt_text("已記錄補充。按 Enter 以目前方向繼續 1 回合，或輸入 A/B/R/O > ").strip().upper()
                 if not next_choice:
                     continue_from_control_choice(
                         engine=engine,
@@ -334,7 +351,7 @@ def summarize_model_error(error: str) -> str:
 def prompt_for_round_count() -> int:
     while True:
         try:
-            return parse_round_count(input("要繼續幾回合？（每回合兩位各回一句）[1] > "))
+            return parse_round_count(prompt_text("要繼續幾回合？（每回合兩位各回一句）[1] > "))
         except ValueError:
             print("請輸入正整數。")
 
