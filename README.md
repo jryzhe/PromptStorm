@@ -63,6 +63,15 @@ https://vercel.com/ -> ai-gateway -> models
 
 Environment variables override config values. A `.env` file in the current directory can also override the global config for that folder.
 
+Supported config keys:
+
+```text
+AI_GATEWAY_API_KEY
+PLAYER_A_MODEL
+PLAYER_B_MODEL
+REPORT_MODEL
+```
+
 ## Usage
 
 ```bash
@@ -77,6 +86,7 @@ For local development from a cloned repo:
 python3 -m pip install -e .
 python3 main.py debate
 python3 -m promptstorm --help
+python3 -m unittest discover -s tests
 ```
 
 Each session asks for:
@@ -94,5 +104,5 @@ After the initial turns, the control panel lets you choose whether A, B, or neit
 ## Notes
 
 - `.env` parsing is implemented in `src/promptstorm/config.py`; `python-dotenv` is not required.
-- If a live model is rate-limited, PromptStorm stops the remaining model turns and lets you finish with the available transcript.
+- If a live model is rate-limited, PromptStorm retries before stopping the remaining model turns and letting you finish with the available transcript.
 - If the conclusion model fails, PromptStorm prints a local fallback summary instead of losing the session.

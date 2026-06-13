@@ -36,12 +36,52 @@ POLITE_FILLERS = [
 DEBATE_SPEAKERS = {"A", "B"}
 
 
+class _StreamingResponseEmitter:
+    def __init__(
+        self,
+        speaker: str,
+        persona: str,
+        profile: ModeProfile,
+        emit: Callable[[str, str], None],
+    ):
+        self.speaker = speaker
+        self.persona = persona
+        self.profile = profile
+        self.emit = emit
+        self.raw_text = ""
+        self.emitted_text = ""
+
+    def receive(self, text: str) -> None:
+        self.raw_text += text
+        stable_source = _stable_reasoning_source(self.raw_text)
+        if _has_unstable_leading_cleanup(
+            stable_source,
+            profile=self.profile,
+            speaker=self.speaker,
+            persona=self.persona,
+        ):
+            return
+        self._emit_cleaned(clean_response(stable_source, self.profile))
+
+    def finish(self, cleaned_text: str) -> None:
+        self._emit_cleaned(cleaned_text)
+
+    def _emit_cleaned(self, cleaned_text: str) -> None:
+        if not cleaned_text.startswith(self.emitted_text):
+            return
+        delta = cleaned_text[len(self.emitted_text) :]
+        if not delta:
+            return
+        self.emit(self.speaker, delta)
+        self.emitted_text = cleaned_text
+
+
 class DebateEngine:
     def __init__(
         self,
         provider: ModelProvider,
         rounds: int = 3,
-        mode: str = "debate",
+        mode: str = "discussion",
         rate_limit_retries: int = 0,
         rate_limit_retry_delay_seconds: float = 0,
         sleep: Callable[[float], None] = default_sleep,
@@ -147,9 +187,17 @@ class DebateEngine:
                     on_turn_start(round_number, speaker, persona)
                 try:
                     on_delta = None
+                    stream_emitter = None
                     if on_response:
-                        def on_delta(text: str, active_speaker: str = speaker) -> None:
-                            on_response(active_speaker, text)
+                        stream_emitter = _StreamingResponseEmitter(
+                            speaker=speaker,
+                            persona=persona,
+                            profile=self.mode_profile,
+                            emit=on_response,
+                        )
+
+                        def on_delta(text: str) -> None:
+                            stream_emitter.receive(text)
 
                     response, streamed = self._complete_with_retries(
                         model=model,
@@ -195,6 +243,8 @@ class DebateEngine:
                         on_turn_end(round_number, speaker)
                     return
                 cleaned_text = clean_response(response.text, self.mode_profile)
+                if stream_emitter and streamed:
+                    stream_emitter.finish(cleaned_text)
                 if on_response and cleaned_text and not streamed:
                     on_response(speaker, cleaned_text)
                 session.turns.append(
@@ -278,6 +328,96 @@ def _format_exception(exc: Exception) -> str:
 def _is_rate_limit_error(error: str) -> bool:
     lowered = error.lower()
     return "ratelimit" in lowered or "rate_limit" in lowered or "429" in lowered
+
+
+def _stable_reasoning_source(text: str) -> str:
+    candidate = _drop_partial_reasoning_tag(text)
+    open_start: int | None = None
+    for match in re.finditer(r"(?is)</?think>", candidate):
+        if match.group(0).lower() == "<think>":
+            open_start = match.start()
+        elif open_start is not None:
+            open_start = None
+    if open_start is not None:
+        return candidate[:open_start]
+    return candidate
+
+
+def _drop_partial_reasoning_tag(text: str) -> str:
+    lowered = text.lower()
+    for tag in ("<think>", "</think>"):
+        for length in range(len(tag) - 1, 0, -1):
+            if lowered.endswith(tag[:length]):
+                return text[:-length]
+    return text
+
+
+def _has_unstable_leading_cleanup(
+    text: str,
+    profile: ModeProfile,
+    speaker: str,
+    persona: str,
+) -> bool:
+    candidate = _strip_reasoning_blocks(text).lstrip()
+    if not candidate:
+        return False
+    if _is_partial_turn_prefix(candidate) or _is_partial_polite_filler(candidate):
+        return True
+    return profile.name == "dialogue" and _is_unstable_dialogue_cleanup(
+        candidate,
+        speaker=speaker,
+        persona=persona,
+    )
+
+
+def _is_partial_turn_prefix(text: str) -> bool:
+    if _strip_turn_prefix(text) != text:
+        return False
+    lowered = text.lower()
+    if "round ".startswith(lowered):
+        return True
+    return bool(re.fullmatch(r"(?is)round\s+\d*(?:\s+\[[^\]]*)?", text))
+
+
+def _is_partial_polite_filler(text: str) -> bool:
+    return any(filler.startswith(text) and filler != text for filler in POLITE_FILLERS)
+
+
+def _is_unstable_dialogue_cleanup(text: str, speaker: str, persona: str) -> bool:
+    if _is_partial_dialogue_label(text, speaker=speaker, persona=persona):
+        return True
+    without_label = _strip_leading_speaker_label(text)
+    if _is_unclosed_leading_stage_direction(without_label):
+        return True
+    without_stage_directions = _strip_leading_stage_directions(without_label)
+    return _has_unclosed_chinese_quote(without_stage_directions)
+
+
+def _is_partial_dialogue_label(text: str, speaker: str, persona: str) -> bool:
+    labels = {speaker.strip(), persona.strip()}
+    lowered = text.lower()
+    for label in labels:
+        if not label:
+            continue
+        for separator in (":", "："):
+            target = f"{label}{separator}".lower()
+            if target.startswith(lowered) and target != lowered:
+                return True
+    return False
+
+
+def _is_unclosed_leading_stage_direction(text: str) -> bool:
+    stripped = text.lstrip()
+    if not stripped:
+        return False
+    pairs = {"(": ")", "（": "）", "[": "]", "【": "】"}
+    closing = pairs.get(stripped[0])
+    return bool(closing and closing not in stripped)
+
+
+def _has_unclosed_chinese_quote(text: str) -> bool:
+    stripped = text.lstrip()
+    return stripped.startswith("「") and "」" not in stripped
 
 
 def _strip_reasoning_blocks(text: str) -> str:

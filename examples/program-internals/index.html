@@ -20,7 +20,7 @@
     <p class="lede mt-m">從 vibe coding 到模組化設計 — 讓兩個模型討論出更好的結果</p>
     <div class="speaker">
       <div class="av"></div>
-      <div><b>PromptStorm · 期末專題</b><span>專題分享</span></div>
+      <div><b>PromptStorm · 期末專題</b><span>11311205 薛宇哲、11311207 潘美妤</span></div>
     </div>
     <div class="deck-footer">
       <span class="mono">#promptstorm #discussion #multillm</span>
@@ -115,11 +115,12 @@
     <p class="lede" style="font-size:15px">不是先想架構，而是先確定使用者在終端機裡想做什麼。最基本的流程只有三步：</p>
     <div class="g2-lg" style="grid-template-columns:1fr 1fr">
       <div class="code-block" style="font-size:15px;line-height:2">
+        <span class="comment"># 在終端機輸入指令啟動一場討論</span>
         <span class="comment">$ </span><span class="kw">promptstorm</span> discussion
         <span class="comment"># 輸入角色與主題</span>
-        Player A > <span class="str">樂觀創業者</span>
-        Player B > <span class="str">謹慎投資人</span>
-        Topic > <span class="str">AI 初創該優先營收嗎</span>
+        Player A > <span class="str">樂觀創業者</span>     <span class="comment"># Player A 的角色人格</span>
+        Player B > <span class="str">謹慎投資人</span>     <span class="comment"># Player B 的角色人格</span>
+        Topic > <span class="str">AI 初創該優先營收嗎</span>  <span class="comment"># 討論主題</span>
         <span class="comment"># 系統讓 A/B 輪流發言...</span></div>
       <div>
         <div class="mod" style="margin-bottom:8px">
@@ -180,14 +181,15 @@
           <p class="md">API 代理層，收到請求後轉發到上游模型（Gemini / Qwen / GPT），結果送回。同一個 SDK 寫法串所有廠商。</p>
         </div>
         <div class="code-block" style="font-size:13px;line-height:1.6">
-          <span class="comment"># base_url 一換，上游模型全換</span>
-          client = <span class="cls">OpenAI</span>(
-              api_key=key,
-              base_url=<span class="str">"https://ai-gateway.vercel.sh/v1"</span>
+          <span class="comment"># 透過 Vercel AI Gateway 統一轉發到不同廠商的模型</span>
+          client = <span class="cls">OpenAI</span>(                                    <span class="comment"># 使用 OpenAI SDK 做為通用客戶端</span>
+              api_key=key,                                <span class="comment"># Vercel AI Gateway 的 API 金鑰</span>
+              base_url=<span class="str">"https://ai-gateway.vercel.sh/v1"</span>   <span class="comment"># Gateway endpoint，統一入口</span>
           )
-          <span class="comment"># model = "google/gemini-...flash-lite"  # Gemini</span>
-          <span class="comment"># model = "alibaba/qwen-3-32b"            # Qwen</span>
-          <span class="comment"># model = "openai/gpt-oss-120b"            # GPT</span></div>
+          <span class="comment"># 只需換 model 名稱就能切換上游模型</span>
+          <span class="comment"># model = "google/gemini-...flash-lite"  # Gemini：輕量快速的 Player A</span>
+          <span class="comment"># model = "alibaba/qwen-3-32b"            # Qwen：提供不同觀點的 Player B</span>
+          <span class="comment"># model = "openai/gpt-oss-120b"            # GPT：品質優先的 Report model</span></div>
       </div>
       <div>
         <div class="feature-row"><span class="num" style="color:var(--good)">1️⃣</span><div><b>SDK 封裝細節</b><p class="dim">API 格式、串流、錯誤處理全部封裝在 SDK 裡，開發者只需傳入 model + messages。</p></div></div>
@@ -240,8 +242,9 @@
         <h4 style="color:var(--good)">🔄 Rate Limit 重試</h4>
         <p class="dim" style="font-size:14px">遇到 429（rate limit）時自動重試。其他錯誤直接拋出——設定錯了不浪費時間傻等。</p>
         <div class="code-block mt-s" style="font-size:12px;line-height:1.5">
+          <span class="comment"># 只有 rate limit (429) 才重試，其他錯誤直接拋出</span>
           <span class="kw">if</span> attempts &gt;= retries <span class="kw">or not</span> is_rate_limit(error):
-              <span class="kw">raise</span></div>
+              <span class="kw">raise</span>  <span class="comment"># 超過重試次數 or 非 rate limit → 放棄</span></div>
       </div>
       <div class="card" style="border-top:3px solid var(--warn)">
         <h4 style="color:var(--warn)">💾 模型失敗不遺失資料</h4>
@@ -370,37 +373,41 @@
     <h2 class="h2">四組核心資料結構</h2>
     <div class="g2-lg">
       <div class="code-block" style="font-size:11px;line-height:1.5">
+        <span class="comment"># 定義設定檔的資料結構</span>
         <span class="kw">@dataclass</span>
         <span class="kw">class</span> <span class="cls">PromptStormConfig</span>:
-            api_key: <span class="fn">str</span>
-            player_a_model: <span class="fn">str</span>
-            player_b_model: <span class="fn">str</span>
-            report_model: <span class="fn">str</span>
+            api_key: <span class="fn">str</span>              <span class="comment"># Vercel AI Gateway 的 API 金鑰</span>
+            player_a_model: <span class="fn">str</span>       <span class="comment"># Player A 使用的模型名稱</span>
+            player_b_model: <span class="fn">str</span>       <span class="comment"># Player B 使用的模型名稱</span>
+            report_model: <span class="fn">str</span>         <span class="comment"># 負責產出最終報告/結論的模型</span>
 
+        <span class="comment"># 統一包裝模型回傳文字的結構</span>
         <span class="kw">@dataclass</span>
         <span class="kw">class</span> <span class="cls">ModelResponse</span>:
-            text: <span class="fn">str</span>
+            text: <span class="fn">str</span>                <span class="comment"># 模型生成的純文字內容</span>
 
+        <span class="comment"># 記錄單一回合發言的詳細資料</span>
         <span class="kw">@dataclass</span>
         <span class="kw">class</span> <span class="cls">DebateTurn</span>:
-            session_id: <span class="fn">str</span>
-            round: <span class="fn">int</span>
-            speaker: <span class="fn">str</span>          <span class="comment"># A / B / USER</span>
-            persona: <span class="fn">str</span>
-            model: <span class="fn">str</span>
-            response_text: <span class="fn">str</span>
-            timestamp: <span class="fn">str</span>
-            status: <span class="fn">str</span> = <span class="str">"ok"</span>
-            error: <span class="fn">str</span> | <span class="kw">None</span> = <span class="kw">None</span>
+            session_id: <span class="fn">str</span>           <span class="comment"># 該場次唯一的 Session ID</span>
+            round: <span class="fn">int</span>               <span class="comment"># 第幾回合（從 1 開始）</span>
+            speaker: <span class="fn">str</span>             <span class="comment"># 發言者身分：A / B / USER</span>
+            persona: <span class="fn">str</span>             <span class="comment"># 發言者設定的角色人格名稱</span>
+            model: <span class="fn">str</span>               <span class="comment"># 生成該次回應的模型</span>
+            response_text: <span class="fn">str</span>       <span class="comment"># 發言的實際文字內容</span>
+            timestamp: <span class="fn">str</span>            <span class="comment"># 發言時間戳記</span>
+            status: <span class="fn">str</span> = <span class="str">"ok"</span>       <span class="comment"># 呼叫狀態：ok / error</span>
+            error: <span class="fn">str</span> | <span class="kw">None</span> = <span class="kw">None</span>  <span class="comment"># 失敗時儲存錯誤訊息</span>
 
+        <span class="comment"># 整場討論的容器——一份完整會議紀錄</span>
         <span class="kw">@dataclass</span>
         <span class="kw">class</span> <span class="cls">DebateSession</span>:
-            session_id: <span class="fn">str</span>
-            timestamp: <span class="fn">str</span>
-            player_a: <span class="fn">str</span>
-            player_b: <span class="fn">str</span>
-            topic: <span class="fn">str</span>
-            turns: <span class="fn">list</span>[DebateTurn]</div>
+            session_id: <span class="fn">str</span>           <span class="comment"># 這場討論的唯一 ID</span>
+            timestamp: <span class="fn">str</span>            <span class="comment"># 討論開始的時間</span>
+            player_a: <span class="fn">str</span>             <span class="comment"># Player A 的角色人格</span>
+            player_b: <span class="fn">str</span>             <span class="comment"># Player B 的角色人格</span>
+            topic: <span class="fn">str</span>               <span class="comment"># 討論主題</span>
+            turns: <span class="fn">list</span>[DebateTurn]    <span class="comment"># 所有回合的發言紀錄</span></div>
       <div>
         <div class="mod" style="margin-bottom:6px">
           <span class="mt" style="font-size:14px">PromptStormConfig</span>
@@ -438,13 +445,14 @@
           <p class="md">把使用者最後的選擇標準化：A 和 B 保持不變，C / TIE / DRAW 統一視為 TIE。後面的 conclusion writer 不用處理多種輸入格式。</p>
         </div>
         <div class="code-block" style="font-size:13px;line-height:1.6">
+          <span class="comment"># 標準化使用者的最終選擇，統一格式供 conclusion writer 使用</span>
           <span class="kw">def</span> <span class="fn">normalize_verdict</span>(raw_value: <span class="fn">str</span>) -> <span class="fn">str</span>:
-              value = raw_value.strip().upper()
-              <span class="kw">if</span> value <span class="kw">in</span> {<span class="str">"A"</span>, <span class="str">"B"</span>}:
+              value = raw_value.strip().upper()           <span class="comment"># 去除空白並轉大寫</span>
+              <span class="kw">if</span> value <span class="kw">in</span> {<span class="str">"A"</span>, <span class="str">"B"</span>}:                  <span class="comment"># A 或 B 保持原樣</span>
                   <span class="kw">return</span> value
-              <span class="kw">if</span> value <span class="kw">in</span> {<span class="str">"C"</span>, <span class="str">"TIE"</span>, <span class="str">"DRAW"</span>}:
+              <span class="kw">if</span> value <span class="kw">in</span> {<span class="str">"C"</span>, <span class="str">"TIE"</span>, <span class="str">"DRAW"</span>}:          <span class="comment"># C / TIE / DRAW 統一為 TIE</span>
                   <span class="kw">return</span> <span class="str">"TIE"</span>
-              <span class="kw">raise</span> <span class="cls">ValueError</span>(<span class="str">"Verdict must be A, B, or C."</span>)</div>
+              <span class="kw">raise</span> <span class="cls">ValueError</span>(<span class="str">"Verdict must be A, B, or C."</span>)  <span class="comment"># 非預期輸入直接報錯</span></div>
       </div>
       <div>
         <div class="mod" style="margin-bottom:10px">
@@ -469,9 +477,10 @@
     <div class="g2-lg" style="grid-template-columns:1.2fr 0.8fr">
       <div>
         <div class="code-block" style="font-size:13px;line-height:1.7;margin-bottom:10px">
-          <span class="cls">DEFAULT_PLAYER_A_MODEL</span> = <span class="str">"google/gemini-3.1-flash-lite"</span>
-          <span class="cls">DEFAULT_PLAYER_B_MODEL</span> = <span class="str">"alibaba/qwen-3-32b"</span>
-          <span class="cls">DEFAULT_REPORT_MODEL</span>   = <span class="str">"openai/gpt-oss-120b"</span></div>
+          <span class="comment"># 預設模型搭配：三個廠商．三種特性</span>
+          <span class="cls">DEFAULT_PLAYER_A_MODEL</span> = <span class="str">"google/gemini-3.1-flash-lite"</span>  <span class="comment"># Player A：輕量快速</span>
+          <span class="cls">DEFAULT_PLAYER_B_MODEL</span> = <span class="str">"alibaba/qwen-3-32b"</span>             <span class="comment"># Player B：觀點差異</span>
+          <span class="cls">DEFAULT_REPORT_MODEL</span>   = <span class="str">"openai/gpt-oss-120b"</span>               <span class="comment"># Report：品質優先</span></div>
         <div class="feature-row"><span class="num" style="color:var(--good);font-size:14px">A</span><div><b>Gemini Flash Lite — 輕量快速</b><p class="dim">開場與一般發言，低延遲是首要考量。</p></div></div>
         <div class="feature-row"><span class="num" style="color:var(--warn);font-size:14px">B</span><div><b>Qwen 32B — 不同生態系</b><p class="dim">觀點差異比速度更重要。提供與 Google/OpenAI 不同的視角。</p></div></div>
         <div class="feature-row"><span class="num" style="color:var(--accent-2);font-size:14px">R</span><div><b>GPT OSS — 品質優先</b><p class="dim">總結需要穩定與深度。不負責討論，品質最重要。</p></div></div>
@@ -479,12 +488,12 @@
       </div>
       <div>
         <div class="code-block" style="font-size:13px;line-height:1.7">
-          <span class="comment"># 優先級：低 → 高</span>
-          <span class="comment"># 1. 全域設定</span>
+          <span class="comment"># 設定來源三層覆蓋（優先級：低 → 高，高的蓋低的）</span>
+          <span class="comment"># 第 1 層：全域設定（所有專案共用）</span>
           ~/.config/promptstorm/.env
-          <span class="comment"># 2. 專案設定</span>
+          <span class="comment"># 第 2 層：專案設定（每個專案可自訂）</span>
           ./<span class="str">.env</span>
-          <span class="comment"># 3. 環境變數</span>
+          <span class="comment"># 第 3 層：環境變數（臨時覆蓋，權限最高）</span>
           <span class="cls">export</span> PROMPTSTORM_API_KEY=...</div>
         <div class="mod mt-s">
           <span class="mt" style="font-size:13px">自製 .env 解析</span>
@@ -505,23 +514,24 @@
     <h2 class="h2"><span class="mono">ModeProfile</span> — 模式的抽象層</h2>
     <div class="g2-lg" style="grid-template-columns:0.9fr 1.1fr">
       <div class="code-block" style="font-size:12px;line-height:1.5">
-        <span class="kw">@dataclass</span>(frozen=<span class="kw">True</span>)
+        <span class="comment"># 模式設定檔——三種模式的所有行為差異封裝在此</span>
+        <span class="kw">@dataclass</span>(frozen=<span class="kw">True</span>)  <span class="comment"># frozen=True 確保設定不可修改</span>
         <span class="kw">class</span> <span class="cls">ModeProfile</span>:
-            name: <span class="fn">str</span>
-            help_text: <span class="fn">str</span>
-            title: <span class="fn">str</span>
-            identity_label: <span class="fn">str</span>
-            counterpart_label: <span class="fn">str</span>
-            default_persona_template: <span class="fn">str</span>
-            system_instruction: <span class="fn">str</span>
-            opening_instruction: <span class="fn">str</span>
-            continuation_instruction: <span class="fn">str</span>
-            support_contexts: <span class="fn">Mapping</span>[str, str]
-            control_lines: <span class="fn">tuple</span>[str, ...]
-            output_label: <span class="fn">str</span>
-            final_state_label: <span class="fn">str</span>
-            conclusion_system: <span class="fn">str</span>
-            conclusion_instruction: <span class="fn">str</span></div>
+            name: <span class="fn">str</span>                      <span class="comment"># 模式名稱：discussion / debate / dialogue</span>
+            help_text: <span class="fn">str</span>                 <span class="comment"># 使用說明文字</span>
+            title: <span class="fn">str</span>                    <span class="comment"># 顯示標題</span>
+            identity_label: <span class="fn">str</span>            <span class="comment"># 自己的身分稱呼</span>
+            counterpart_label: <span class="fn">str</span>         <span class="comment"># 對方的稱呼</span>
+            default_persona_template: <span class="fn">str</span>   <span class="comment"># 預設角色模板</span>
+            system_instruction: <span class="fn">str</span>         <span class="comment"># 模型的系統提示</span>
+            opening_instruction: <span class="fn">str</span>        <span class="comment"># 第一輪的開場指令</span>
+            continuation_instruction: <span class="fn">str</span>   <span class="comment"># 後續回合的接續指令</span>
+            support_contexts: <span class="fn">Mapping</span>[str, str]  <span class="comment"># 支援/不支援的立場文案</span>
+            control_lines: <span class="fn">tuple</span>[str, ...]       <span class="comment"># 控制選單的文字行</span>
+            output_label: <span class="fn">str</span>              <span class="comment"># 結論的標籤</span>
+            final_state_label: <span class="fn">str</span>          <span class="comment"># 最終狀態的標籤</span>
+            conclusion_system: <span class="fn">str</span>          <span class="comment"># 結論階段的系統提示</span>
+            conclusion_instruction: <span class="fn">str</span>     <span class="comment"># 結論階段的指令</span></div>
       <div>
         <div class="mod" style="margin-bottom:8px">
           <span class="mt" style="font-size:14px">為什麼是 frozen dataclass？</span>
@@ -580,13 +590,14 @@
     <div class="g2-lg" style="grid-template-columns:1fr 1fr">
       <div>
         <div class="code-block" style="font-size:13px;line-height:1.7">
+          <span class="comment"># 自動判斷輸出語言——確保模型用使用者輸入的語言回答</span>
           <span class="kw">def</span> <span class="fn">detect_output_language</span>(
               topic, human_input
           ) -> <span class="fn">str</span>:
-              <span class="comment"># 文字明確要求英文 → English</span>
-              <span class="comment"># 文字明確要求中文 → Traditional Chinese</span>
-              <span class="comment"># 中文字元比例高 → Traditional Chinese</span>
-              <span class="comment"># 英文字母較多 → English</span></div>
+              <span class="comment"># 規則 1：文字明確要求英文 → English</span>
+              <span class="comment"># 規則 2：文字明確要求中文 → Traditional Chinese</span>
+              <span class="comment"># 規則 3：中文字元比例高 → Traditional Chinese</span>
+              <span class="comment"># 規則 4：英文字母較多 → English</span></div>
       </div>
       <div>
         <div class="mod" style="margin-bottom:8px">
@@ -608,13 +619,13 @@
     <h2 class="h2"><span class="mono">ModelProvider</span> Protocol — 抽象介面</h2>
     <div class="g2-lg" style="grid-template-columns:1fr 1fr">
       <div class="code-block" style="font-size:14px;line-height:1.7">
-        <span class="comment"># 只要實作 complete() 就能用</span>
-        <span class="kw">class</span> <span class="cls">ModelProvider</span>(<span class="fn">Protocol</span>):
+        <span class="comment"># ModelProvider Protocol——只要實作 complete() 就能當成 provider 使用</span>
+        <span class="kw">class</span> <span class="cls">ModelProvider</span>(<span class="fn">Protocol</span>):          <span class="comment"># Python 結構子型別，不需繼承基底類別</span>
             <span class="kw">def</span> <span class="fn">complete</span>(
                 self,
-                model: <span class="fn">str</span>,
-                messages: <span class="fn">Sequence</span>[dict],
-            ) -> <span class="cls">ModelResponse</span>: ...</div>
+                model: <span class="fn">str</span>,                    <span class="comment"># 要呼叫的模型名稱</span>
+                messages: <span class="fn">Sequence</span>[dict],        <span class="comment"># 對話歷史 + 系統提示</span>
+            ) -> <span class="cls">ModelResponse</span>: ...             <span class="comment"># 回傳統一格式的 ModelResponse</span></div>
       <div>
         <div class="mod" style="margin-bottom:8px">
           <span class="mt">結構子型別（Structural Subtyping）</span>
@@ -636,22 +647,23 @@
     <h2 class="h2"><span class="mono">VercelGatewayProvider</span> — 實際實作</h2>
     <div class="g2-lg">
       <div class="code-block" style="font-size:13px;line-height:1.6">
+        <span class="comment"># 實際串接 Vercel AI Gateway 的 Provider 實作</span>
         <span class="kw">class</span> <span class="cls">VercelGatewayProvider</span>:
             <span class="kw">def</span> <span class="fn">__init__</span>(self, api_key):
-                self._client = <span class="kw">None</span>  <span class="comment"># 延遲初始化</span>
+                self._client = <span class="kw">None</span>  <span class="comment"># 延遲初始化（Lazy Init），不在一開始建立連線</span>
 
-            <span class="kw">def</span> <span class="fn">_get_client</span>(self):
-                <span class="kw">if</span> self._client <span class="kw">is</span> <span class="kw">None</span>:
+            <span class="kw">def</span> <span class="fn">_get_client</span>(self):                <span class="comment"># 取得或建立 OpenAI 客戶端</span>
+                <span class="kw">if</span> self._client <span class="kw">is</span> <span class="kw">None</span>:            <span class="comment"># 首次呼叫才初始化</span>
                     self._client = <span class="cls">OpenAI</span>(
                         api_key=self.api_key,
-                        base_url=<span class="str">"https://ai-gateway.vercel.sh/v1"</span>)
+                        base_url=<span class="str">"https://ai-gateway.vercel.sh/v1"</span>)  <span class="comment"># Gateway 統一入口</span>
                 <span class="kw">return</span> self._client
 
-            <span class="kw">def</span> <span class="fn">complete</span>(self, model, messages, ...):
-                client = <span class="fn">_get_client</span>()
+            <span class="kw">def</span> <span class="fn">complete</span>(self, model, messages, ...):   <span class="comment"># 實作 Protocol 的 complete()</span>
+                client = <span class="fn">_get_client</span>()              <span class="comment"># 取得延遲初始化的 client</span>
                 stream = client.chat.completions.create(
-                    model=model, messages=messages, stream=<span class="kw">True</span>)
-                <span class="comment"># 逐段收集輸出，透過 callback 即時回傳</span></div>
+                    model=model, messages=messages, stream=<span class="kw">True</span>)  <span class="comment"># 串流模式接收</span>
+                <span class="comment"># 逐段收集輸出，透過 callback 即時回傳給 CLI 顯示</span></div>
       <div>
         <div class="feature-row"><span class="num" style="color:var(--good)">⚡</span><div><b>延遲初始化（Lazy Init）</b><p class="dim">client 不是 __init__ 就建立，等第一次呼叫 complete() 才初始化。避免開局浪費資源。</p></div></div>
         <div class="feature-row"><span class="num" style="color:var(--accent)">📡</span><div><b>Streaming 實作細節</b><p class="dim">SDK 的 stream=True → 串流模式接收。每收到一段 chunk 就透過 callback 送回 CLI 顯示。使用者看到的是逐字出現的文字，不是一次跳一整段。</p></div></div>
@@ -671,17 +683,18 @@
     <h2 class="h2"><span class="mono">DebateEngine</span> — 整場討論的導演</h2>
     <div class="g2-lg">
       <div class="code-block" style="font-size:13px;line-height:1.6">
+        <span class="comment"># DebateEngine——整場討論的導演，負責控制討論流程</span>
         <span class="kw">class</span> <span class="cls">DebateEngine</span>:
             <span class="kw">def</span> <span class="fn">__init__</span>(self, provider, rounds,
-                         mode, rate_limit_retries, sleep):
-            <span class="kw">def</span> <span class="fn">run</span>(self, ...):         <span class="comment"># 建立 Session + 初始回合</span>
-            <span class="kw">def</span> <span class="fn">continue_debate</span>(self): <span class="comment"># 原 session 追加回合</span>
-            <span class="kw">def</span> <span class="fn">add_human_input</span>(self): <span class="comment"># 插入使用者補充</span>
-            <span class="kw">def</span> <span class="fn">_run_rounds</span>(self, ...): <span class="comment"># ⭐ 核心迴圈</span>
-            <span class="kw">def</span> <span class="fn">_build_messages</span>(self): <span class="comment"># 組裝 prompt</span>
-            <span class="kw">def</span> <span class="fn">_format_transcript</span>(self): <span class="comment"># turns → 純文字</span>
-            <span class="kw">def</span> <span class="fn">clean_response</span>(self):  <span class="comment"># 清掉模型雜訊</span>
-            <span class="kw">def</span> <span class="fn">_complete_with_retries</span>(self): <span class="comment"># rate limit 重試</span></div>
+                         mode, rate_limit_retries, sleep):          <span class="comment"># sleep 做成參數方便測試注入</span>
+            <span class="kw">def</span> <span class="fn">run</span>(self, ...):         <span class="comment"># 建立 Session + 執行初始回合</span>
+            <span class="kw">def</span> <span class="fn">continue_debate</span>(self): <span class="comment"># 在原 session 上追加更多回合</span>
+            <span class="kw">def</span> <span class="fn">add_human_input</span>(self): <span class="comment"># 插入使用者補充內容到 transcript</span>
+            <span class="kw">def</span> <span class="fn">_run_rounds</span>(self, ...): <span class="comment"># ⭐ 核心迴圈：雙層迴圈驅動整場討論</span>
+            <span class="kw">def</span> <span class="fn">_build_messages</span>(self): <span class="comment"># 組裝發送給模型的 prompt</span>
+            <span class="kw">def</span> <span class="fn">_format_transcript</span>(self): <span class="comment"># 把結構化 turns 轉成純文字</span>
+            <span class="kw">def</span> <span class="fn">clean_response</span>(self):  <span class="comment"># 清理模型輸出中的雜訊</span>
+            <span class="kw">def</span> <span class="fn">_complete_with_retries</span>(self): <span class="comment"># rate limit 自動重試（僅 429）</span></div>
       <div>
         <div class="mod" style="margin-bottom:8px">
           <span class="mt" style="font-size:14px">__init__ 接收哪些參數？</span>
@@ -708,36 +721,36 @@
     <div class="g2-lg">
       <div>
         <div class="code-block" style="font-size:12px;line-height:1.6">
-          <span class="comment"># _run_rounds() — 雙層迴圈</span>
-          <span class="kw">for</span> round_number <span class="kw">in</span> <span class="fn">range</span>(start, start + rounds):
-              <span class="kw">for</span> speaker <span class="kw">in</span> speaker_order:   <span class="comment"># A → B</span>
-                  persona = <span class="fn">_get_persona</span>(speaker)
-                  model = <span class="fn">_get_model</span>(speaker)
-                  messages = <span class="fn">_build_messages</span>(speaker, persona, ...)
-                  response = provider.<span class="fn">complete</span>(model, messages)
-                  cleaned = <span class="fn">clean_response</span>(response)
-                  <span class="fn">_save_turn</span>(speaker, cleaned)</div>
+          <span class="comment"># _run_rounds() — 雙層迴圈，引擎的心跳</span>
+          <span class="kw">for</span> round_number <span class="kw">in</span> <span class="fn">range</span>(start, start + rounds):    <span class="comment"># 外層：回合數</span>
+              <span class="kw">for</span> speaker <span class="kw">in</span> speaker_order:   <span class="comment"># 內層：A → B 依序發言</span>
+                  persona = <span class="fn">_get_persona</span>(speaker)      <span class="comment"># 取得該 speaker 的角色人格</span>
+                  model = <span class="fn">_get_model</span>(speaker)         <span class="comment"># 取得該 speaker 使用的模型</span>
+                  messages = <span class="fn">_build_messages</span>(speaker, persona, ...)  <span class="comment"># 組裝完整 prompt（含歷史）</span>
+                  response = provider.<span class="fn">complete</span>(model, messages)        <span class="comment"># 呼叫模型</span>
+                  cleaned = <span class="fn">clean_response</span>(response)  <span class="comment"># 清理雜訊</span>
+                  <span class="fn">_save_turn</span>(speaker, cleaned)      <span class="comment"># 儲存到 session.turns</span></div>
         <div class="code-block mt-s" style="font-size:12px;line-height:1.5">
-          <span class="comment"># _build_messages() — prompt 組裝</span>
-          <span class="kw">if</span> transcript <span class="kw">is</span> <span class="kw">None</span>:
-              <span class="comment"># 第一輪：使用 opening_instruction</span>
-              system = profile.system_instruction
-              user = profile.opening_instruction + topic
-          <span class="kw">else</span>:
-              <span class="comment"># 第 N 輪：使用 continuation + 完整歷史</span>
-              system = profile.system_instruction
-              user = profile.continuation_instruction
-              user += transcript  <span class="comment"># 包含前面所有人說過的話</span></div>
+          <span class="comment"># _build_messages() — 組裝發送給模型的 prompt</span>
+          <span class="kw">if</span> transcript <span class="kw">is</span> <span class="kw">None</span>:                     <span class="comment"># 第一輪：還沒有歷史紀錄</span>
+              <span class="comment"># 第一輪：使用 opening_instruction 開場</span>
+              system = profile.system_instruction       <span class="comment"># 系統提示（角色設定）</span>
+              user = profile.opening_instruction + topic <span class="comment"># 開場引導 + 主題</span>
+          <span class="kw">else</span>:                                     <span class="comment"># 第 N 輪：已有討論歷史</span>
+              <span class="comment"># 第 N 輪：使用 continuation 指令 + 包含完整討論歷史</span>
+              system = profile.system_instruction       <span class="comment"># 系統提示不變</span>
+              user = profile.continuation_instruction    <span class="comment"># 接續引導（如「反駁對方論點」）</span>
+              user += transcript  <span class="comment"># 完整歷史——A 和 B 能真正對話的關鍵</span></div>
       </div>
       <div>
         <div class="feature-row"><span class="num">1️⃣</span><div><b>_run_rounds() 雙層迴圈</b><p class="dim">外層 = 回合數，內層 = A→B 依序。每個 speaker 流程完全統一，不會出現 A 和 B 處理不一致。</p></div></div>
         <div class="feature-row"><span class="num">2️⃣</span><div><b>transcript 是共享上下文</b><p class="dim">這就是兩個 LLM 能真正對話的關鍵——每輪模型看到的不只是 topic，而是包含前面所有人的完整歷史。B 知道 A 說了什麼，A 知道 B 回了什麼。</p></div></div>
         <div class="feature-row"><span class="num">3️⃣</span><div><b>opening vs continuation</b><p class="dim">第一輪用 opening_instruction 開場。後續用 continuation_instruction 要求接續。兩種 instruction 都來自 ModeProfile。</p></div></div>
         <div class="code-block mt-s" style="font-size:12px;line-height:1.5">
-          <span class="comment"># _format_transcript() — 純文字格式</span>
-          Round 1 [A: Point of View A] ...
-          Round 1 [B: Point of View B] ...
-          Human input after Round 1: ...</div>
+          <span class="comment"># _format_transcript() — 把結構化的 DebateTurn 列表轉成純文字給模型閱讀</span>
+          Round 1 [A: Point of View A] ...         <span class="comment"># 格式：回合 [發言者: 內容]</span>
+          Round 1 [B: Point of View B] ...         <span class="comment"># 每輪 A 和 B 各一次</span>
+          Human input after Round 1: ...            <span class="comment"># 使用者的補充意見也一併記錄</span></div>
       </div>
     </div>
     <aside class="notes">
@@ -754,19 +767,19 @@
     <div class="g2-lg">
       <div>
         <div class="code-block" style="font-size:13px;line-height:1.6">
-          <span class="comment"># clean_response() — 移除 4 類雜訊</span>
-          <span class="comment"># 1. <think>...</think> 推理區塊</span>
-          <span class="comment"># 2. "Round 1 [A: ...]" 多餘前綴</span>
-          <span class="comment"># 3. 「好的，我明白你的意思」禮貌開場</span>
-          <span class="comment"># 4. Dialogue 模式：角色名、括號動作、敘述</span></div>
+          <span class="comment"># clean_response() — 移除模型輸出中的 4 類雜訊</span>
+          <span class="comment"># 類型 1：移除 <think>...</think> 推理區塊（模型內心 OS，不該讓使用者看到）</span>
+          <span class="comment"># 類型 2：移除 "Round 1 [A: ...]" 這類多餘前綴</span>
+          <span class="comment"># 類型 3：移除「好的，我明白你的意思」這類浪費版面的禮貌開場</span>
+          <span class="comment"># 類型 4：Dialogue 模式——移除角色名、括號動作、敘述，只保留台詞</span></div>
         <p class="lede mt-s" style="font-size:14px">不同模型常輸出不需要的內容。clean_response() 統一清理，讓 terminal 顯示的是乾淨的發言內容。</p>
         <div class="code-block mt-s" style="font-size:13px;line-height:1.6">
-          <span class="comment"># _complete_with_retries() — 聰明重試</span>
-          <span class="kw">if</span> attempts &gt;= self.rate_limit_retries:
-              <span class="kw">raise</span>
-          <span class="kw">if not</span> <span class="fn">_is_rate_limit_error</span>(error):
-              <span class="kw">raise</span>  <span class="comment"># 非 rate limit 直接拋出</span>
-          <span class="comment"># 只有 429 才重試</span></div>
+          <span class="comment"># _complete_with_retries() — 聰明重試，不浪費時間</span>
+          <span class="kw">if</span> attempts &gt;= self.rate_limit_retries:    <span class="comment"># 超過重試次數上限</span>
+              <span class="kw">raise</span>                               <span class="comment"># 放棄，往上拋</span>
+          <span class="kw">if not</span> <span class="fn">_is_rate_limit_error</span>(error):          <span class="comment"># 不是 rate limit 錯誤</span>
+              <span class="kw">raise</span>  <span class="comment"># 非 rate limit 直接拋出（API key 錯了重試也沒用）</span>
+          <span class="comment"># 只有 HTTP 429 Too Many Requests 才重試</span></div>
       </div>
       <div>
         <div class="feature-row"><span class="num" style="color:var(--good)">🧹</span><div><b>clean_response 的價值</b><p class="dim">&lt;think&gt; 區塊是推理過程，不該讓觀眾看到。「好的，我明白你的意思」這類開場白浪費版面。clean_response 讓發言內容更精煉。</p></div></div>
@@ -786,19 +799,19 @@
     <h2 class="h2">指令解析 + 設定流程</h2>
     <div class="g2-lg">
       <div class="code-block" style="font-size:13px;line-height:1.6">
-        <span class="comment"># main() — 用 argparse 解析指令</span>
+        <span class="comment"># main() — 程式的進入點，用 argparse 解析使用者輸入的指令</span>
         <span class="kw">def</span> <span class="fn">main</span>(argv):
-            parser = <span class="fn">build_parser</span>()
-            args = parser.parse_args(argv)
+            parser = <span class="fn">build_parser</span>()                 <span class="comment"># 建立指令解析器</span>
+            args = parser.parse_args(argv)            <span class="comment"># 解析指令與參數</span>
 
-        <span class="comment"># build_parser() — 從 SESSION_MODE_NAMES 自動建立指令</span>
-        <span class="comment"># 未來加新模式不用改 CLI 程式碼</span>
+        <span class="comment"># build_parser() — 從 SESSION_MODE_NAMES 自動建立子指令</span>
+        <span class="comment"># 未來 modes.py 加新模式，CLI 自動支援，不用改 CLI 程式碼</span>
 
-        <span class="comment"># run_setup() — getpass 保護 API key</span>
+        <span class="comment"># run_setup() — 使用 getpass 保護 API key（輸入時不顯示在終端機上）</span>
         <span class="kw">def</span> <span class="fn">run_setup</span>():
-            api_key = <span class="fn">getpass.getpass</span>(<span class="str">"Vercel AI Gateway API key: "</span>)
-            <span class="comment"># 選擇 Player A、Player B、Report model</span>
-            <span class="comment"># 呼叫 save_api_key() 寫入設定檔</span></div>
+            api_key = <span class="fn">getpass.getpass</span>(<span class="str">"Vercel AI Gateway API key: "</span>)  <span class="comment"># 隱密輸入</span>
+            <span class="comment"># 讓使用者選擇 Player A、Player B、Report model</span>
+            <span class="comment"># 最後呼叫 save_api_key() 寫入設定檔</span></div>
       <div>
         <div class="mod" style="margin-bottom:8px">
           <span class="mt" style="font-size:14px">支援的 CLI 指令</span>
@@ -825,18 +838,19 @@
     <div class="g2-lg">
       <div>
         <div class="code-block" style="font-size:13px;line-height:1.6">
+          <span class="comment"># run_session() — 整場 session 的導演，11 步串起所有模組</span>
           <span class="kw">def</span> <span class="fn">run_session</span>(mode_name):
-              <span class="num"> 1</span> profile = <span class="fn">get_mode_profile</span>(mode_name)
-              <span class="num"> 2</span> config = <span class="fn">load_config</span>()
-              <span class="num"> 3</span> <span class="kw">if not</span> config.api_key: <span class="fn">get_api_key</span>()
-              <span class="num"> 4</span> persona_a = <span class="fn">input</span>(<span class="str">"Player A: "</span>)
-              <span class="num"> 5</span> persona_b = <span class="fn">input</span>(<span class="str">"Player B: "</span>)
-              <span class="num"> 6</span> topic = <span class="fn">input</span>(<span class="str">"Topic: "</span>)
-              <span class="num"> 7</span> provider = <span class="cls">VercelGatewayProvider</span>(config.api_key)
-              <span class="num"> 8</span> engine = <span class="cls">DebateEngine</span>(provider, ...)
-              <span class="num"> 9</span> engine.<span class="fn">run</span>(persona_a, persona_b, topic)
-              <span class="num">10</span> <span class="fn">run_control_loop</span>(engine)
-              <span class="num">11</span> writer.<span class="fn">generate_conclusion</span>()</div>
+              <span class="num"> 1</span> profile = <span class="fn">get_mode_profile</span>(mode_name)     <span class="comment"># 取得模式設定檔</span>
+              <span class="num"> 2</span> config = <span class="fn">load_config</span>()                    <span class="comment"># 載入設定</span>
+              <span class="num"> 3</span> <span class="kw">if not</span> config.api_key: <span class="fn">get_api_key</span>()        <span class="comment"># 沒有 API key 就引導設定</span>
+              <span class="num"> 4</span> persona_a = <span class="fn">input</span>(<span class="str">"Player A: "</span>)          <span class="comment"># 輸入 A 角色</span>
+              <span class="num"> 5</span> persona_b = <span class="fn">input</span>(<span class="str">"Player B: "</span>)          <span class="comment"># 輸入 B 角色</span>
+              <span class="num"> 6</span> topic = <span class="fn">input</span>(<span class="str">"Topic: "</span>)                <span class="comment"># 輸入討論主題</span>
+              <span class="num"> 7</span> provider = <span class="cls">VercelGatewayProvider</span>(config.api_key)  <span class="comment"># 建立 Provider</span>
+              <span class="num"> 8</span> engine = <span class="cls">DebateEngine</span>(provider, ...)      <span class="comment"># 建立 Engine（傳入 callback）</span>
+              <span class="num"> 9</span> engine.<span class="fn">run</span>(persona_a, persona_b, topic)   <span class="comment"># 開始討論</span>
+              <span class="num">10</span> <span class="fn">run_control_loop</span>(engine)                 <span class="comment"># 控制迴圈（使用者決定下一步）</span>
+              <span class="num">11</span> writer.<span class="fn">generate_conclusion</span>()              <span class="comment"># 輸出結論</span></div>
       </div>
       <div>
         <div class="feature-row"><span class="num" style="color:var(--accent)">🎬</span><div><b>run_session() 做的事</b><p class="dim">取得 ModeProfile → 載入設定 → 取得 API key → 輸入角色主題 → 建立 Provider → 建立 Engine → 設定 callback → engine.run() → 控制迴圈 → 結論輸出。整場 session 全由它串聯。</p></div></div>
@@ -867,9 +881,9 @@
           <p class="md">把使用者選項轉成 engine 需要的參數。<br>Dialogue 模式特殊：如果使用者希望 B 更主動，發言順序變 B → A。</p>
         </div>
         <div class="code-block" style="font-size:13px;line-height:1.7">
-          <span class="comment"># Dialogue 特殊 speaker 順序</span>
-          <span class="kw">if</span> profile.name == <span class="str">"dialogue"</span> <span class="kw">and</span> choice == <span class="str">"B"</span>:
-              <span class="kw">return</span> (<span class="str">"B"</span>, <span class="str">"A"</span>)  <span class="comment"># B 先發言，A 再接</span></div>
+          <span class="comment"># Dialogue 模式的特殊 speaker 順序</span>
+          <span class="kw">if</span> profile.name == <span class="str">"dialogue"</span> <span class="kw">and</span> choice == <span class="str">"B"</span>:  <span class="comment"># 使用者希望 B 更主動</span>
+              <span class="kw">return</span> (<span class="str">"B"</span>, <span class="str">"A"</span>)  <span class="comment"># B 先發言，A 再接——Dialogue 獨有的互動順序</span></div>
       </div>
       <div>
         <div class="feature-row"><span class="num" style="color:var(--accent-2)">🎭</span><div><b>Dialogue 的兩種特殊行為</b><p class="dim">1. 每次只輸出一句台詞（clean_response 強制）<br>2. 使用者可讓 B 更主動 → B 先發言再換 A</p></div></div>
@@ -891,15 +905,16 @@
     <div class="g2-lg">
       <div>
         <div class="code-block" style="font-size:13px;line-height:1.6">
+          <span class="comment"># ConclusionWriter——根據 transcript 產出最終結論</span>
           <span class="kw">class</span> <span class="cls">ConclusionWriter</span>:
-              <span class="kw">def</span> <span class="fn">generate_conclusion</span>(self):
-                  profile = <span class="fn">get_mode_profile</span>()
-                  verdict = <span class="fn">normalize_verdict</span>(self.verdict)
-                  lang = <span class="fn">detect_output_language</span>(topic, human)
-                  <span class="comment"># 呼叫 report model（拿完整 transcript）</span>
+              <span class="kw">def</span> <span class="fn">generate_conclusion</span>(self):               <span class="comment"># 生成結論的主方法</span>
+                  profile = <span class="fn">get_mode_profile</span>()                <span class="comment"># 取得模式設定（決定結論格式）</span>
+                  verdict = <span class="fn">normalize_verdict</span>(self.verdict)   <span class="comment"># 標準化使用者最終選擇</span>
+                  lang = <span class="fn">detect_output_language</span>(topic, human) <span class="comment"># 自動判斷輸出語言</span>
+                  <span class="comment"># 呼叫 report model，傳入完整 transcript 做為上下文</span>
                   <span class="kw">return</span> provider.<span class="fn">complete</span>(
-                      model=report_model,
-                      messages=[...transcript...])</div>
+                      model=report_model,                  <span class="comment"># 使用專門的報告模型</span>
+                      messages=[...transcript...])         <span class="comment"># 整場討論的完整紀錄</span></div>
         <div class="mod mt-s">
           <span class="mt" style="font-size:14px;color:var(--warn)">build_fallback_conclusion()</span>
           <p class="md" style="font-size:12px">report model 失敗時不崩潰。產出本地 fallback：說明錯誤原因 → 顯示 final state → 顯示完整 transcript。</p>
