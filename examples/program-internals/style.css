@@ -4,7 +4,7 @@
 }
 .tpl-program-internals .kicker {
   font-family: var(--font-mono, monospace);
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-3);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -76,16 +76,16 @@
   font-size: 16px;
 }
 .tpl-program-internals .speaker span {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-3);
 }
 /* TOC rows */
 .tpl-program-internals .toc-row {
   display: grid;
-  grid-template-columns: 44px 1fr auto;
-  gap: 14px;
+  grid-template-columns: 48px 1fr;
+  gap: 16px;
   align-items: center;
-  padding: 12px 16px;
+  padding: 16px 20px;
   border: 1px solid var(--border);
   border-radius: 10px;
   margin-bottom: 8px;
@@ -93,12 +93,12 @@
 }
 .tpl-program-internals .toc-row .num {
   font-family: var(--font-mono, monospace);
-  font-size: 14px;
+  font-size: 16px;
   color: var(--accent, #7aa2f7);
   font-weight: 700;
 }
 .tpl-program-internals .toc-row .t {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
   color: var(--text-1);
 }
@@ -159,7 +159,7 @@
 }
 .tpl-program-internals .arch-tree .file {
   font-family: var(--font-mono, monospace);
-  font-size: 13px;
+  font-size: 14px;
   padding: 4px 10px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -197,7 +197,7 @@
   margin: 0 0 2px 0;
 }
 .tpl-program-internals .flow .node p {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-3);
   margin: 0;
 }
@@ -244,7 +244,7 @@
   flex-wrap: wrap;
 }
 .tpl-program-internals .mod .tag {
-  font-size: 11px;
+  font-size: 12px;
   padding: 2px 8px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -385,7 +385,7 @@
   margin: 0 0 6px 0;
 }
 .tpl-program-internals .mode-card p {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-2);
   margin: 0;
   line-height: 1.5;

@@ -24,7 +24,7 @@
     </div>
     <div class="deck-footer">
       <span class="mono">#promptstorm #discussion #multillm</span>
-      <span class="slide-number" data-current="1" data-total="32"></span>
+      <span class="slide-number" data-current="1" data-total="41"></span>
     </div>
     <aside class="notes">
       <p>大家好，歡迎來到今天的技術分享。今天我們要深入解剖 PromptStorm CLI 的程式內部。</p>
@@ -38,10 +38,10 @@
     <p class="kicker">agenda · 目錄</p>
     <h2 class="h2">今天要講的 5 個 part</h2>
     <div class="stack mt-l">
-      <div class="toc-row"><span class="num">01</span><span class="t">作品簡介 &amp; 動機 — 為什麼要討論出更好的結果</span></div>
-      <div class="toc-row"><span class="num">02</span><span class="t">Vibe Coding 製作過程 — 五個階段逐步成型</span></div>
+      <div class="toc-row"><span class="num">01</span><span class="t">作品簡介 &amp; 動機</span></div>
+      <div class="toc-row"><span class="num">02</span><span class="t">製作過程</span></div>
       <div class="toc-row"><span class="num">03</span><span class="t">專案結構 &amp; 完整執行流程</span></div>
-      <div class="toc-row"><span class="num">04</span><span class="t">六個核心模組逐一深讀 — 15 頁拆給你看</span></div>
+      <div class="toc-row"><span class="num">04</span><span class="t">六個核心模組</span></div>
       <div class="toc-row"><span class="num">05</span><span class="t">心得</span></div>
     </div>
     <aside class="notes">
@@ -81,10 +81,10 @@
       <div>
         <h4 class="mt-m" style="color:var(--bad)">手動做的 4 個問題</h4>
         <ul class="bullets" style="margin-top:4px;gap:6px">
-          <li style="padding:8px 12px;font-size:13px"><b>流程中斷</b> — 每輪都要自己整理上下文</li>
-          <li style="padding:8px 12px;font-size:13px"><b>容易遺漏</b> — 討論越長越難維持完整 transcript</li>
-          <li style="padding:8px 12px;font-size:13px"><b>方向難控制</b> — 要手動改 prompt 引導</li>
-          <li style="padding:8px 12px;font-size:13px"><b>缺少結論</b> — 最後還要再請模型總結</li>
+          <li style="padding:8px 12px;font-size:14px"><b>流程中斷</b> — 每輪都要自己整理上下文</li>
+          <li style="padding:8px 12px;font-size:14px"><b>容易遺漏</b> — 討論越長越難維持完整 transcript</li>
+          <li style="padding:8px 12px;font-size:14px"><b>方向難控制</b> — 要手動改 prompt 引導</li>
+          <li style="padding:8px 12px;font-size:14px"><b>缺少結論</b> — 最後還要再請模型總結</li>
         </ul>
       </div>
     </div>
@@ -95,10 +95,92 @@
     </aside>
   </section>
 
-  <!-- ==================== 5. SECTION 02 ==================== -->
+  <!-- ==================== 5. DEMO SETUP ==================== -->
+  <section class="slide" data-title="Demo Setup">
+    <p class="kicker">demo · setup</p>
+    <h2 class="h2">Setup</h2>
+    <video src="https://pub-186dd76314654feb82c35f12e9b13737.r2.dev/img/2026/06/setup.mp4" controls autoplay muted playsinline style="width:65%;border-radius:10px;margin:12px auto 0;display:block"></video>
+    <aside class="notes">
+      <p>Setup 流程的操作畫面。設定 API key 與選擇模型。</p>
+    </aside>
+  </section>
+
+  <!-- ==================== 6. DEMO DISCUSSION ==================== -->
+  <section class="slide" data-title="Demo Discussion">
+    <p class="kicker">demo · discussion</p>
+    <h2 class="h2">Discussion</h2>
+    <div style="display:flex;gap:24px;align-items:flex-start;margin-top:12px;justify-content:center">
+      <video src="https://pub-186dd76314654feb82c35f12e9b13737.r2.dev/img/2026/06/discussion.mp4" controls autoplay muted playsinline style="width:60%;border-radius:10px;flex-shrink:0"></video>
+      <p style="flex:1;font-size:14px;line-height:1.6;opacity:.8;margin-top:0;max-width:280px">
+        我想用 vibe coding 做一個「小組報告救火助手」MVP。目標使用者是大學生，情境是期末很多小組報告同時到期，大家常常不知道誰要做什麼、deadline 到哪裡、簡報內容怎麼分。
+      </p>
+    </div>
+    <aside class="notes">
+      <p>Discussion 模式的實際操作畫面。輸入指令、角色、主題後，A 和 B 輪流發言。</p>
+    </aside>
+  </section>
+
+  <!-- ==================== 7. DEMO DEBATE ==================== -->
+  <section class="slide" data-title="Demo Debate">
+    <p class="kicker">demo · debate</p>
+    <h2 class="h2">Debate — 實際演示</h2>
+    <video src="https://pub-186dd76314654feb82c35f12e9b13737.r2.dev/img/2026/06/debate.mp4" controls autoplay muted playsinline style="width:65%;border-radius:10px;margin:12px auto 0;display:block"></video>
+    <aside class="notes">
+      <p>Debate 模式的實際操作畫面。兩個模型互相比較論點強度。</p>
+    </aside>
+  </section>
+
+  <!-- ==================== 7B. DEMO DEBATE OUTPUT ==================== -->
+  <section class="slide" data-title="Debate Output">
+    <p class="kicker">demo · debate output</p>
+    <h2 class="h2">Debate — AI 工具：CLI vs GUI 結論</h2>
+    <pre style="width:90%;max-width:720px;margin:8px auto 0;font-size:13px;line-height:1.5;padding:16px 20px;border-radius:10px;background:rgba(0,0,0,.35);white-space:pre-wrap;word-break:break-word;overflow-y:auto;max-height:380px;text-align:left">
+=============================================
+          AI 工具：CLI vs GUI 結論
+=============================================
+
+▶ 執行摘要
+本次辯論雙方各持有理據，未能形成共識，故人類裁決為 TIE。
+- CLI 強調可組合、腳本化、在 CI/CD 與自動化流程中的直接可用性。
+- GUI 強調多模態輸入、視覺化狀態管理、跨角色（設計、產品、QA）協作的易用性。
+兩者皆有不可忽視的優勢，最佳策略應是 **同時提供 CLI 與 GUI，並以統一 API 為核心**。
+
+▶ A 方（CLI 派）核心論點
+1. **組合性 & 管道**：`pipe` 讓 AI 輸出直接串接其他工具（grep、sed、git），適合批量處理與腳本自動化。
+2. **自動化與規模化**：在 CI/CD、監控腳本中可直接呼叫，無需瀏覽器或手動點擊。
+3. **工具鏈一致性**：Unix 哲學——「做一件事，做好」；CLI 天然可被容器、k8s 等環境調用。
+
+▶ B 方（GUI 派）核心論點
+1. **多模態與零成本輸入**：支援圖片、JSON、截圖等複合資訊，CLI 需要繁雜編碼與轉義。
+2. **視覺化思考迴路**：分支對話、Diff、標註、即時預覽，降低人工驗證 AI 輸出錯誤的成本。
+3. **跨角色協作**：產品、設計、QA 等非技術人員可直接在網頁上審核、決策，避免「文字牆」阻斷溝通。
+
+▶ 為何裁定為 TIE 合理
+- **需求多樣**：開發者、DevOps 團隊需要腳本化的 CLI；而業務、設計、測試人員則需圖形化的 GUI。
+- **技術互補**：CLI 提供高效管道與自動化入口，GUI 提供多模態輸入與可視化決策支援，兩者缺一不可。
+- 雙方均未能證明另一方的缺點足以完全抵消其優勢，故平手最為貼切。
+
+▶ 具體後續建議
+1. **先行打造統一 HTTP/JSON API**：作為核心服務，CLI 只需 thin wrapper，GUI 只需前端呼叫。
+2. **同步開發 CLI 包裝與 Web 前端**  
+   - CLI：提供 `ai-tool &lt;command&gt; [options]`，支援 pipe、JSON 輸入/輸出。  
+   - GUI：提供多模態上傳、即時 Diff、交互式測試面板，並內建「導出 CLI 命令」功能。
+3. **在 CI/CD 中使用 API**：無論是腳本或自動化流程，都透過 API 呼叫 AI，保持環境無瀏覽器依賴。
+4. **使用者教育與文件**：針對開發者提供 Bash/Zsh 完整範例；針對非技術角色提供 UI 教學影片。
+5. **迭代驗證**：先在小型內部項目中同時測試 CLI 與 GUI 的工作流，收集使用率與效率指標，決定資源分配比例。
+
+---------------------------------------------
+結論：同時投資 CLI 與 GUI，圍繞統一 API 建構生態，可兼顧自動化效率與跨職能可用性，最終提升 AI 工具的整體價值。
+    </pre>
+    <aside class="notes">
+      <p>Debate 模式產出的全文。兩個模型從 CLI 和 GUI 兩方觀點辯論，最後由人類裁定 TIE。</p>
+    </aside>
+  </section>
+
+  <!-- ==================== 8. SECTION 02 ==================== -->
   <section class="slide section-divider" data-title="Vibe Coding">
     <div class="num-lg">02</div>
-    <p class="kicker">part 02 · Vibe Coding 製作過程</p>
+    <p class="kicker">part 02 · 製作過程</p>
     <h1 class="h1" style="font-size:68px"><span class="gradient-text">Vibe Coding</span> 製作過程</h1>
     <div class="divider-accent"></div>
     <p class="lede" style="max-width:520px;font-size:17px">從定義使用情境到補上錯誤處理，五個階段逐步成型。每個階段都在解決一個具體問題。</p>
@@ -158,7 +240,7 @@
       <div class="mod"><span class="mt">reporter.py</span><p class="md">結論輸出與 fallback。</p><div class="tags"><span class="tag">只負責總結</span></div></div>
       <div class="mod" style="grid-column:span 2"><span class="mt">config.py</span><p class="md">API key 與模型設定。支援三層覆蓋。</p><div class="tags"><span class="tag">只負責設定</span></div></div>
     </div>
-    <p class="dim mt-s" style="font-size:13px">未來想換模型平台 → 改 provider.py。想加新模式 → 改 modes.py。想換終端機 → 改 cli.py。彼此不干擾。</p>
+    <p class="dim mt-s" style="font-size:14px">未來想換模型平台 → 改 provider.py。想加新模式 → 改 modes.py。想換終端機 → 改 cli.py。彼此不干擾。</p>
     <aside class="notes">
       <p>第二階段：拆模組。七個獨立模組各司其職。</p>
       <p>這樣拆的好處是：每個模組的變更不會影響其他模組。想換模型平台只改 provider、想加新模式只改 modes、想換 UI 只改 cli。</p>
@@ -180,7 +262,7 @@
           <span class="mt" style="font-size:15px">Vercel AI Gateway</span>
           <p class="md">API 代理層，收到請求後轉發到上游模型（Gemini / Qwen / GPT），結果送回。同一個 SDK 寫法串所有廠商。</p>
         </div>
-        <div class="code-block" style="font-size:13px;line-height:1.6">
+        <div class="code-block" style="font-size:14px;line-height:1.6">
           <span class="comment"># 透過 Vercel AI Gateway 統一轉發到不同廠商的模型</span>
           client = <span class="cls">OpenAI</span>(                                    <span class="comment"># 使用 OpenAI SDK 做為通用客戶端</span>
               api_key=key,                                <span class="comment"># Vercel AI Gateway 的 API 金鑰</span>
@@ -213,7 +295,7 @@
     <h2 class="h2">加入控制選單 — 使用者是主持人</h2>
     <p class="lede" style="font-size:15px">一般 chatbot 是一問一答，但 PromptStorm 是「主持一場多模型討論」。使用者可以隨時介入方向：</p>
     <div class="g2-lg" style="grid-template-columns:1fr 1fr">
-      <div class="menu-block" style="font-size:13px;line-height:1.9;margin-top:0">
+      <div class="menu-block" style="font-size:14px;line-height:1.9;margin-top:0">
         <span class="hl">[A]</span> 我目前支持 A，讓雙方再討論 N 回合
         <span class="hl">[B]</span> 我目前支持 B，讓雙方再討論 N 回合
         <span class="hl">[R]</span> 我目前都不支持，讓雙方再討論 N 回合
@@ -304,15 +386,15 @@
       <div>
         <div class="mod" style="margin-bottom:6px">
           <span class="mt" style="font-size:14px">pyproject.toml</span>
-          <p class="md" style="font-size:12px">專案封裝設定。名稱 <span class="mono">promptstorm-cli</span>、Python ≥ 3.11、依賴 <span class="mono">openai≥1.0.0</span>、入口 <span class="mono">promptstorm = "promptstorm.cli:main"</span>。</p>
+          <p class="md" style="font-size:13px">專案封裝設定。名稱 <span class="mono">promptstorm-cli</span>、Python ≥ 3.11、依賴 <span class="mono">openai≥1.0.0</span>、入口 <span class="mono">promptstorm = "promptstorm.cli:main"</span>。</p>
         </div>
         <div class="mod" style="margin-bottom:6px">
           <span class="mt" style="font-size:14px">main.py</span>
-          <p class="md" style="font-size:12px">本地開發入口。把 src 加入 import path，開發者直接 <span class="mono">python3 main.py discussion</span>。不需先安裝套件。</p>
+          <p class="md" style="font-size:13px">本地開發入口。把 src 加入 import path，開發者直接 <span class="mono">python3 main.py discussion</span>。不需先安裝套件。</p>
         </div>
         <div class="mod">
           <span class="mt" style="font-size:14px">__main__.py</span>
-          <p class="md" style="font-size:12px">支援 <span class="mono">python3 -m promptstorm</span>，將執行權交給 cli.main()。</p>
+          <p class="md" style="font-size:13px">支援 <span class="mono">python3 -m promptstorm</span>，將執行權交給 cli.main()。</p>
         </div>
       </div>
     </div>
@@ -322,42 +404,53 @@
     </aside>
   </section>
 
-  <!-- ==================== 11. COMPLETE FLOW ==================== -->
-  <section class="slide" data-title="Complete Flow">
+  <!-- ==================== 11. COMPLETE FLOW: STEPS ==================== -->
+  <section class="slide" data-title="Complete Flow Steps">
     <p class="kicker">pipeline · 完整執行流程</p>
     <h2 class="h2">從指令到結論，13 步一氣呵成</h2>
-    <div class="code-block" style="font-size:12px;line-height:1.7">
-      <span class="num"> 1</span> 使用者輸入 <span class="kw">promptstorm discussion</span>
-      <span class="num"> 2</span> cli.main() 用 argparse 解析指令
-      <span class="num"> 3</span> run_session() 載入設定與 API key
-      <span class="num"> 4</span> 輸入 Player A persona、Player B persona、Topic
-      <span class="num"> 5</span> 建立 VercelGatewayProvider 和 DebateEngine
-      <span class="num"> 6</span> engine.run() 建立 DebateSession
-      <span class="num"> 7</span> _run_rounds() 讓 A/B 輪流發言（雙層迴圈）
-      <span class="num"> 8</span> 每次發言用 _build_messages() 組 prompt（含完整歷史）
-      <span class="num"> 9</span> provider.complete() 串流呼叫模型
-      <span class="num">10</span> clean_response() 清理模型輸出雜訊
-      <span class="num">11</span> 新增 DebateTurn 到 session.turns
-      <span class="num">12</span> run_control_loop() 讓使用者決定下一步
-      <span class="num">13</span> ConclusionWriter 輸出 conclusion 或 synthesis</div>
-    <div class="flow mt-s" style="gap:5px">
-      <div class="node" style="padding:8px;min-width:70px"><div class="ic">⌨️</div><h4>CLI</h4></div><div class="arr">→</div>
-      <div class="node hl" style="padding:8px;min-width:70px"><div class="ic">⚙️</div><h4>Config</h4></div><div class="arr">→</div>
-      <div class="node" style="padding:8px;min-width:70px"><div class="ic">🧠</div><h4>Engine</h4></div><div class="arr">→</div>
-      <div class="node" style="padding:8px;min-width:70px"><div class="ic">🌐</div><h4>Provider</h4></div><div class="arr">→</div>
-      <div class="node" style="padding:8px;min-width:70px"><div class="ic">📝</div><h4>Transc.</h4></div><div class="arr">→</div>
-      <div class="node" style="padding:8px;min-width:70px"><div class="ic">📄</div><h4>Report</h4></div>
-    </div>
+    <div class="code-block" style="font-size:14px;line-height:1.7;margin-top:12px">
+    <span class="num"> 1</span> 使用者輸入 <span class="kw">promptstorm discussion</span>
+    <span class="num"> 2</span> cli.main() 用 argparse 解析指令
+    <span class="num"> 3</span> run_session() 載入設定與 API key
+    <span class="num"> 4</span> 輸入 Player A persona、Player B persona、Topic
+    <span class="num"> 5</span> 建立 VercelGatewayProvider 和 DebateEngine
+    <span class="num"> 6</span> engine.run() 建立 DebateSession
+    <span class="num"> 7</span> _run_rounds() 讓 A/B 輪流發言（雙層迴圈）
+    <span class="num"> 8</span> 每次發言用 _build_messages() 組 prompt（含完整歷史）
+    <span class="num"> 9</span> provider.complete() 串流呼叫模型
+    <span class="num">10</span> clean_response() 清理模型輸出雜訊
+    <span class="num">11</span> 新增 DebateTurn 到 session.turns
+    <span class="num">12</span> run_control_loop() 讓使用者決定下一步
+    <span class="num">13</span> ConclusionWriter 輸出 conclusion 或 synthesis</div>
     <aside class="notes">
       <p>13 步一氣呵成。run_session() 是導演，串起 Config、Engine、Provider、Reporter。</p>
       <p>第 7 步是核心——_run_rounds() 的雙層迴圈。第 8 步的 _build_messages() 把完整歷史塞進 prompt，這也是兩個 LLM 能真正對話的關鍵。</p>
     </aside>
   </section>
 
+  <!-- ==================== 11B. COMPLETE FLOW: DIAGRAM ==================== -->
+  <section class="slide" data-title="Complete Flow Diagram">
+    <p class="kicker">pipeline · 視覺化流程</p>
+    <h2 class="h2">六大模組串接關係</h2>
+    <div class="flow mt-l" style="gap:8px">
+      <div class="node" style="padding:14px 18px;min-width:100px"><div class="ic">⌨️</div><h4>CLI</h4><p>終端機介面</p></div><div class="arr">→</div>
+      <div class="node hl" style="padding:14px 18px;min-width:100px"><div class="ic">⚙️</div><h4>Config</h4><p>設定載入</p></div><div class="arr">→</div>
+      <div class="node" style="padding:14px 18px;min-width:100px"><div class="ic">🧠</div><h4>Engine</h4><p>流程控制</p></div><div class="arr">→</div>
+      <div class="node" style="padding:14px 18px;min-width:100px"><div class="ic">🌐</div><h4>Provider</h4><p>API 呼叫</p></div><div class="arr">→</div>
+      <div class="node" style="padding:14px 18px;min-width:100px"><div class="ic">📝</div><h4>Transc.</h4><p>對話紀錄</p></div><div class="arr">→</div>
+      <div class="node" style="padding:14px 18px;min-width:100px"><div class="ic">📄</div><h4>Report</h4><p>結論輸出</p></div>
+    </div>
+    <p class="lede mt-l" style="font-size:15px;text-align:center;max-width:600px;margin-left:auto;margin-right:auto">每個模組只跟相鄰模組溝通。CLI 發起請求，Config 提供設定，Engine 控制流程，Provider 呼叫 API，Transcript 記錄對話，Reporter 產出結論。</p>
+    <aside class="notes">
+      <p>視覺化流程圖。六大模組串接關係，箭頭方向就是資料流方向。</p>
+      <p>Engine 是核心——它拿著 Config 的設定，指揮 Provider 呼叫模型，把結果寫入 Transcript，最後請 Reporter 產出結論。</p>
+    </aside>
+  </section>
+
   <!-- ==================== 12. SECTION 04 ==================== -->
   <section class="slide section-divider" data-title="Core Modules">
     <div class="num-lg">04</div>
-    <p class="kicker">part 04 · 六個核心模組逐一深讀</p>
+    <p class="kicker">part 04 · 六個核心模組</p>
     <h1 class="h1" style="font-size:68px">六個核心<span class="gradient-text">模組</span></h1>
     <div class="divider-accent"></div>
     <p class="lede" style="max-width:520px;font-size:17px">從 models 到 reporter，15 頁逐一深入每一支程式的內部實作。</p>
@@ -367,12 +460,12 @@
     </aside>
   </section>
 
-  <!-- ==================== 13. MODELS ==================== -->
-  <section class="slide" data-title="models.py">
+  <!-- ==================== 13. MODELS: CONFIG + RESPONSE ==================== -->
+  <section class="slide" data-title="models.py Config">
     <p class="kicker">module 01 · models.py</p>
-    <h2 class="h2">四組核心資料結構</h2>
+    <h2 class="h2">設定結構 + 回應包裝</h2>
     <div class="g2-lg">
-      <div class="code-block" style="font-size:11px;line-height:1.5">
+      <div class="code-block" style="font-size:13px;line-height:1.5">
         <span class="comment"># 定義設定檔的資料結構</span>
         <span class="kw">@dataclass</span>
         <span class="kw">class</span> <span class="cls">PromptStormConfig</span>:
@@ -384,8 +477,30 @@
         <span class="comment"># 統一包裝模型回傳文字的結構</span>
         <span class="kw">@dataclass</span>
         <span class="kw">class</span> <span class="cls">ModelResponse</span>:
-            text: <span class="fn">str</span>                <span class="comment"># 模型生成的純文字內容</span>
+            text: <span class="fn">str</span>                <span class="comment"># 模型生成的純文字內容</span></div>
+      <div>
+        <div class="mod" style="margin-bottom:6px">
+          <span class="mt" style="font-size:14px">PromptStormConfig</span>
+          <p class="md" style="font-size:13px">三種模型可分開設定。討論模型和總結模型可以不同——輕量模型討論、強大模型總結。</p>
+        </div>
+        <div class="mod" style="margin-bottom:6px">
+          <span class="mt" style="font-size:14px">ModelResponse</span>
+          <p class="md" style="font-size:13px">抽象層關鍵。engine 不知道底層 API 格式，只處理 ModelResponse。</p>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <p>PromptStormConfig 定義三種模型的區分：A、B 和 report。ModelResponse 是抽象層的關鍵——engine 只跟 ModelResponse 打交道，provider 負責轉換。</p>
+      <p>下一頁繼續看發言紀錄的資料結構。</p>
+    </aside>
+  </section>
 
+  <!-- ==================== 13B. MODELS: TURN + SESSION ==================== -->
+  <section class="slide" data-title="models.py Turn Session">
+    <p class="kicker">module 01 · models.py</p>
+    <h2 class="h2">發言單位 + 討論容器</h2>
+    <div class="g2-lg">
+      <div class="code-block" style="font-size:13px;line-height:1.5">
         <span class="comment"># 記錄單一回合發言的詳細資料</span>
         <span class="kw">@dataclass</span>
         <span class="kw">class</span> <span class="cls">DebateTurn</span>:
@@ -410,20 +525,12 @@
             turns: <span class="fn">list</span>[DebateTurn]    <span class="comment"># 所有回合的發言紀錄</span></div>
       <div>
         <div class="mod" style="margin-bottom:6px">
-          <span class="mt" style="font-size:14px">PromptStormConfig</span>
-          <p class="md" style="font-size:12px">三種模型可分開設定。討論模型和總結模型可以不同——輕量模型討論、強大模型總結。</p>
-        </div>
-        <div class="mod" style="margin-bottom:6px">
-          <span class="mt" style="font-size:14px">ModelResponse</span>
-          <p class="md" style="font-size:12px">抽象層關鍵。engine 不知道底層 API 格式，只處理 ModelResponse。</p>
-        </div>
-        <div class="mod" style="margin-bottom:6px">
           <span class="mt" style="font-size:14px">DebateTurn</span>
-          <p class="md" style="font-size:12px">一次發言的最小單位。不管是模型還是使用者，格式都一樣。</p>
+          <p class="md" style="font-size:13px">一次發言的最小單位。不管是模型還是使用者，格式都一樣。</p>
         </div>
         <div class="mod">
           <span class="mt" style="font-size:14px">DebateSession</span>
-          <p class="md" style="font-size:12px">整場討論的容器，一份完整會議紀錄。</p>
+          <p class="md" style="font-size:13px">整場討論的容器，一份完整會議紀錄。</p>
         </div>
       </div>
     </div>
@@ -444,7 +551,7 @@
           <span class="mt">normalize_verdict()</span>
           <p class="md">把使用者最後的選擇標準化：A 和 B 保持不變，C / TIE / DRAW 統一視為 TIE。後面的 conclusion writer 不用處理多種輸入格式。</p>
         </div>
-        <div class="code-block" style="font-size:13px;line-height:1.6">
+        <div class="code-block" style="font-size:14px;line-height:1.6">
           <span class="comment"># 標準化使用者的最終選擇，統一格式供 conclusion writer 使用</span>
           <span class="kw">def</span> <span class="fn">normalize_verdict</span>(raw_value: <span class="fn">str</span>) -> <span class="fn">str</span>:
               value = raw_value.strip().upper()           <span class="comment"># 去除空白並轉大寫</span>
@@ -476,7 +583,7 @@
     <h2 class="h2">三層設定覆蓋 + 預設模型策略</h2>
     <div class="g2-lg" style="grid-template-columns:1.2fr 0.8fr">
       <div>
-        <div class="code-block" style="font-size:13px;line-height:1.7;margin-bottom:10px">
+        <div class="code-block" style="font-size:14px;line-height:1.7;margin-bottom:10px">
           <span class="comment"># 預設模型搭配：三個廠商．三種特性</span>
           <span class="cls">DEFAULT_PLAYER_A_MODEL</span> = <span class="str">"google/gemini-3.1-flash-lite"</span>  <span class="comment"># Player A：輕量快速</span>
           <span class="cls">DEFAULT_PLAYER_B_MODEL</span> = <span class="str">"alibaba/qwen-3-32b"</span>             <span class="comment"># Player B：觀點差異</span>
@@ -484,10 +591,10 @@
         <div class="feature-row"><span class="num" style="color:var(--good);font-size:14px">A</span><div><b>Gemini Flash Lite — 輕量快速</b><p class="dim">開場與一般發言，低延遲是首要考量。</p></div></div>
         <div class="feature-row"><span class="num" style="color:var(--warn);font-size:14px">B</span><div><b>Qwen 32B — 不同生態系</b><p class="dim">觀點差異比速度更重要。提供與 Google/OpenAI 不同的視角。</p></div></div>
         <div class="feature-row"><span class="num" style="color:var(--accent-2);font-size:14px">R</span><div><b>GPT OSS — 品質優先</b><p class="dim">總結需要穩定與深度。不負責討論，品質最重要。</p></div></div>
-        <p class="dim mt-s" style="font-size:12px">三個模型來自三個廠商：Google · Alibaba · OpenAI。觀點差異最大化。</p>
+        <p class="dim mt-s" style="font-size:13px">三個模型來自三個廠商：Google · Alibaba · OpenAI。觀點差異最大化。</p>
       </div>
       <div>
-        <div class="code-block" style="font-size:13px;line-height:1.7">
+        <div class="code-block" style="font-size:14px;line-height:1.7">
           <span class="comment"># 設定來源三層覆蓋（優先級：低 → 高，高的蓋低的）</span>
           <span class="comment"># 第 1 層：全域設定（所有專案共用）</span>
           ~/.config/promptstorm/.env
@@ -497,7 +604,7 @@
           <span class="cls">export</span> PROMPTSTORM_API_KEY=...</div>
         <div class="mod mt-s">
           <span class="mt" style="font-size:13px">自製 .env 解析</span>
-          <p class="md" style="font-size:12px">不依賴 python-dotenv。自己實作：忽略空行、註解行、無 = 行。支援引號去除。</p>
+          <p class="md" style="font-size:13px">不依賴 python-dotenv。自己實作：忽略空行、註解行、無 = 行。支援引號去除。</p>
         </div>
       </div>
     </div>
@@ -535,11 +642,11 @@
       <div>
         <div class="mod" style="margin-bottom:8px">
           <span class="mt" style="font-size:14px">為什麼是 frozen dataclass？</span>
-          <p class="md" style="font-size:12px">不可變物件確保設定不會在執行過程中被意外修改。模式定義是唯讀的。</p>
+          <p class="md" style="font-size:13px">不可變物件確保設定不會在執行過程中被意外修改。模式定義是唯讀的。</p>
         </div>
         <div class="mod" style="margin-bottom:8px">
           <span class="mt" style="font-size:14px">engine 不需要知道自己跑哪一種模式</span>
-          <p class="md" style="font-size:12px">ModeProfile 把所有差異封裝在設定裡。engine 只要拿到 profile，開場用 opening_instruction、接續用 continuation_instruction，不 care 是 debate 還是 dialogue。</p>
+          <p class="md" style="font-size:13px">ModeProfile 把所有差異封裝在設定裡。engine 只要拿到 profile，開場用 opening_instruction、接續用 continuation_instruction，不 care 是 debate 還是 dialogue。</p>
         </div>
         <div class="feature-row"><span class="num">📦</span><div><b>15 個欄位一次打包</b><p class="dim">從 UI 文案到 prompt 指令到 conclusion 設定，全部在一個結構裡。要加新模式就加一組設定。</p></div></div>
       </div>
@@ -553,11 +660,11 @@
   <!-- ==================== 17. MODES: THREE ==================== -->
   <section class="slide" data-title="modes.py Three">
     <p class="kicker">module 03 · modes.py</p>
-    <h2 class="h2">三種模式，核心差異在 prompt 設定</h2>
+    <h2 class="h2">三種模式 — Prompt 設定</h2>
     <div class="mode-grid" style="margin-top:12px">
       <div class="mode-card discussion">
         <div class="ic">💬</div>
-        <h4>Discussion <span style="font-size:12px;color:var(--accent)">← 主線</span></h4>
+        <h4>Discussion <span style="font-size:13px;color:var(--accent)">← 主線</span></h4>
         <p>system: 「你們是合作分析夥伴」<br>opening: 「請從你的角度分析這個問題」<br>continuation: 「根據對方觀點，補充或修正你的分析」<br>預設 3 回合·輸出 synthesis</p>
       </div>
       <div class="mode-card debate">
@@ -571,25 +678,40 @@
         <p>system: 「你們是角色扮演」<br>opening: 「請以角色身分開始對話」<br>continuation: 「回應該角色」<br>預設僅 1 回合·每輪一句台詞</p>
       </div>
     </div>
-    <div class="grid g3 mt-m" style="gap:12px">
-      <div class="card card-accent" style="padding:12px 14px"><h4 style="font-size:14px">💬 Discussion</h4><p class="dim" style="font-size:12px">不同角度互補 → 收斂出更完整的答案</p></div>
-      <div class="card" style="padding:12px 14px;border-top-color:var(--bad)"><h4 style="font-size:14px;color:var(--bad)">⚔️ Debate</h4><p class="dim" style="font-size:12px">攻防反駁 → 測試論點強度</p></div>
-      <div class="card" style="padding:12px 14px;border-top-color:var(--accent-2)"><h4 style="font-size:14px;color:var(--accent-2)">🎭 Dialogue</h4><p class="dim" style="font-size:12px">角色扮演 → 情境對話</p></div>
-    </div>
     <aside class="notes">
       <p>三種模式的核心差異不在程式流程，全在 prompt 設定。</p>
-      <p>Discussion 的 system instruction 說「你們是合作分析夥伴」，Debate 說「你們是辯論對手」——engine 完全不管，它只負責把 instruction 傳給模型。</p>
-      <p>Dialogue 還有一個額外限制：clean_response() 會特別處理 dialogue 模式，移除多餘角色名和敘述，只保留一句台詞。</p>
+      <p>Discussion 說「合作分析夥伴」，Debate 說「辯論對手」——engine 完全不管，只負責把 instruction 傳給模型。</p>
+      <p>下一頁繼續看三種模式的用途對照。</p>
     </aside>
   </section>
 
-  <!-- ==================== 18. MODES: LANG DETECT ==================== -->
+  <!-- ==================== 17B. MODES: COMPARISON ==================== -->
+  <section class="slide" data-title="modes.py Comparison">
+    <p class="kicker">module 03 · modes.py</p>
+    <h2 class="h2">三種模式 — 用途對照</h2>
+    <div class="grid g3 mt-m" style="gap:16px;margin-top:24px">
+      <div class="card card-accent" style="padding:18px 20px"><h4 style="font-size:16px">💬 Discussion</h4><p class="dim" style="font-size:14px">不同角度互補 → 收斂出更完整的答案</p></div>
+      <div class="card" style="padding:18px 20px;border-top-color:var(--bad)"><h4 style="font-size:16px;color:var(--bad)">⚔️ Debate</h4><p class="dim" style="font-size:14px">攻防反駁 → 測試論點強度</p></div>
+      <div class="card" style="padding:18px 20px;border-top-color:var(--accent-2)"><h4 style="font-size:16px;color:var(--accent-2)">🎭 Dialogue</h4><p class="dim" style="font-size:14px">角色扮演 → 情境對話</p></div>
+    </div>
+    <div class="bullets" style="margin-top:20px">
+      <li><b>Discussion 是主線</b> — 合作分析，兩個模型互補盲點，最終 synthesis 收斂完整答案。</li>
+      <li><b>Debate 是支線</b> — 攻防反駁，測試論點強度，最終使用者選邊或裁決。</li>
+      <li><b>Dialogue 是特殊用途</b> — 角色扮演情境對話，clean_response 會額外處理只保留台詞。</li>
+    </div>
+    <aside class="notes">
+      <p>三種模式的用途對照。Discussion 是主線——兩個模型合作。Debate 是攻防比較。Dialogue 是角色扮演。</p>
+      <p>Dialogue 還有一個額外限制：clean_response() 會特別處理 dialogue 模式，移除角色名和敘述，只保留一句台詞。</p>
+    </aside>
+  </section>
+
+  <!-- ==================== 19. MODES: LANG DETECT ==================== -->
   <section class="slide" data-title="modes.py Lang">
     <p class="kicker">module 03 · modes.py</p>
     <h2 class="h2">語言偵測：自動判斷輸出語言</h2>
     <div class="g2-lg" style="grid-template-columns:1fr 1fr">
       <div>
-        <div class="code-block" style="font-size:13px;line-height:1.7">
+        <div class="code-block" style="font-size:14px;line-height:1.7">
           <span class="comment"># 自動判斷輸出語言——確保模型用使用者輸入的語言回答</span>
           <span class="kw">def</span> <span class="fn">detect_output_language</span>(
               topic, human_input
@@ -646,7 +768,7 @@
     <p class="kicker">module 04 · provider.py</p>
     <h2 class="h2"><span class="mono">VercelGatewayProvider</span> — 實際實作</h2>
     <div class="g2-lg">
-      <div class="code-block" style="font-size:13px;line-height:1.6">
+      <div class="code-block" style="font-size:14px;line-height:1.6">
         <span class="comment"># 實際串接 Vercel AI Gateway 的 Provider 實作</span>
         <span class="kw">class</span> <span class="cls">VercelGatewayProvider</span>:
             <span class="kw">def</span> <span class="fn">__init__</span>(self, api_key):
@@ -682,7 +804,7 @@
     <p class="kicker">module 05 · engine.py</p>
     <h2 class="h2"><span class="mono">DebateEngine</span> — 整場討論的導演</h2>
     <div class="g2-lg">
-      <div class="code-block" style="font-size:13px;line-height:1.6">
+      <div class="code-block" style="font-size:14px;line-height:1.6">
         <span class="comment"># DebateEngine——整場討論的導演，負責控制討論流程</span>
         <span class="kw">class</span> <span class="cls">DebateEngine</span>:
             <span class="kw">def</span> <span class="fn">__init__</span>(self, provider, rounds,
@@ -698,7 +820,7 @@
       <div>
         <div class="mod" style="margin-bottom:8px">
           <span class="mt" style="font-size:14px">__init__ 接收哪些參數？</span>
-          <p class="md" style="font-size:12px"><b>provider</b> — ModelProvider 實例<br>
+          <p class="md" style="font-size:13px"><b>provider</b> — ModelProvider 實例<br>
           <b>rounds</b> — 初始回合數<br>
           <b>mode</b> — discussion / debate / dialogue<br>
           <b>rate_limit_retries</b> — 重試次數<br>
@@ -717,7 +839,7 @@
   <!-- ==================== 22. ENGINE: CORE LOOP ==================== -->
   <section class="slide" data-title="engine.py Loop">
     <p class="kicker">module 05 · engine.py</p>
-    <h2 class="h2">核心迴圈 + Prompt 組裝</h2>
+    <h2 class="h2">核心迴圈 — _run_rounds()</h2>
     <div class="g2-lg">
       <div>
         <div class="code-block" style="font-size:12px;line-height:1.6">
@@ -730,7 +852,26 @@
                   response = provider.<span class="fn">complete</span>(model, messages)        <span class="comment"># 呼叫模型</span>
                   cleaned = <span class="fn">clean_response</span>(response)  <span class="comment"># 清理雜訊</span>
                   <span class="fn">_save_turn</span>(speaker, cleaned)      <span class="comment"># 儲存到 session.turns</span></div>
-        <div class="code-block mt-s" style="font-size:12px;line-height:1.5">
+      </div>
+      <div>
+        <div class="feature-row"><span class="num">1️⃣</span><div><b>雙層迴圈結構</b><p class="dim">外層 = 回合數，內層 = A→B 依序。每個 speaker 流程完全統一。</p></div></div>
+        <div class="feature-row"><span class="num">2️⃣</span><div><b>每步都是同一個 pipeline</b><p class="dim">取人格 → 取模型 → 組 prompt → 呼叫 → 清理 → 儲存。A 和 B 處理一致，不會偏袒。</p></div></div>
+        <div class="feature-row"><span class="num">3️⃣</span><div><b>transcript 是共享上下文</b><p class="dim">每輪模型看到的是包含前面所有人的完整歷史。B 知道 A 說了什麼，A 知道 B 回了什麼——這是真正對話的關鍵。</p></div></div>
+      </div>
+    </div>
+    <aside class="notes">
+      <p>_run_rounds() 的雙層迴圈是引擎的心跳。外層跑回合，內層讓 A 和 B 依序發言。每個 speaker 的流程完全一致。</p>
+      <p>下一頁繼續看 prompt 是怎麼組裝的。</p>
+    </aside>
+  </section>
+
+  <!-- ==================== 22B. ENGINE: PROMPT ASSEMBLY ==================== -->
+  <section class="slide" data-title="engine.py Build Messages">
+    <p class="kicker">module 05 · engine.py</p>
+    <h2 class="h2">Prompt 組裝 + Transcript 格式</h2>
+    <div class="g2-lg">
+      <div>
+        <div class="code-block" style="font-size:12px;line-height:1.5">
           <span class="comment"># _build_messages() — 組裝發送給模型的 prompt</span>
           <span class="kw">if</span> transcript <span class="kw">is</span> <span class="kw">None</span>:                     <span class="comment"># 第一輪：還沒有歷史紀錄</span>
               <span class="comment"># 第一輪：使用 opening_instruction 開場</span>
@@ -741,39 +882,58 @@
               system = profile.system_instruction       <span class="comment"># 系統提示不變</span>
               user = profile.continuation_instruction    <span class="comment"># 接續引導（如「反駁對方論點」）</span>
               user += transcript  <span class="comment"># 完整歷史——A 和 B 能真正對話的關鍵</span></div>
-      </div>
-      <div>
-        <div class="feature-row"><span class="num">1️⃣</span><div><b>_run_rounds() 雙層迴圈</b><p class="dim">外層 = 回合數，內層 = A→B 依序。每個 speaker 流程完全統一，不會出現 A 和 B 處理不一致。</p></div></div>
-        <div class="feature-row"><span class="num">2️⃣</span><div><b>transcript 是共享上下文</b><p class="dim">這就是兩個 LLM 能真正對話的關鍵——每輪模型看到的不只是 topic，而是包含前面所有人的完整歷史。B 知道 A 說了什麼，A 知道 B 回了什麼。</p></div></div>
-        <div class="feature-row"><span class="num">3️⃣</span><div><b>opening vs continuation</b><p class="dim">第一輪用 opening_instruction 開場。後續用 continuation_instruction 要求接續。兩種 instruction 都來自 ModeProfile。</p></div></div>
         <div class="code-block mt-s" style="font-size:12px;line-height:1.5">
           <span class="comment"># _format_transcript() — 把結構化的 DebateTurn 列表轉成純文字給模型閱讀</span>
           Round 1 [A: Point of View A] ...         <span class="comment"># 格式：回合 [發言者: 內容]</span>
           Round 1 [B: Point of View B] ...         <span class="comment"># 每輪 A 和 B 各一次</span>
           Human input after Round 1: ...            <span class="comment"># 使用者的補充意見也一併記錄</span></div>
       </div>
+      <div>
+        <div class="feature-row"><span class="num">1️⃣</span><div><b>第一輪 vs 第 N 輪</b><p class="dim">第一輪用 opening_instruction 開場引導。後續用 continuation_instruction 要求接續，兩種指令來自 ModeProfile。</p></div></div>
+        <div class="feature-row"><span class="num">2️⃣</span><div><b>transcript 串接歷史</b><p class="dim">完整討論歷史附加在 user 訊息末端。模型看到的不只是當下的 prompt，而是整場討論演進。</p></div></div>
+        <div class="feature-row"><span class="num">3️⃣</span><div><b>結構化 → 純文字</b><p class="dim">_format_transcript() 把 DebateTurn list 轉成人類/模型都好讀的純文字格式，回合、發言者、內容一目瞭然。</p></div></div>
+      </div>
     </div>
     <aside class="notes">
-      <p>核心迴圈。_run_rounds() 的雙層迴圈是引擎的心跳。</p>
-      <p>_build_messages() 的 transcript 機制是 PromptStorm 的靈魂——每輪模型看到完整歷史。B 知道 A 說了什麼，A 知道 B 回了什麼。這不是兩個獨立 chatbot，而是一場真正的對話。</p>
-      <p>_format_transcript() 把結構化的 DebateTurn list 轉成純文字，放進 prompt 給模型看。</p>
+      <p>_build_messages() 組裝 prompt。關鍵差異在第一輪 vs 第 N 輪：第一輪用 opening_instruction，後續用 continuation_instruction。</p>
+      <p>_format_transcript() 是把結構化的發言記錄轉成純文字，放入 prompt 讓模型能讀懂前面發生什麼。</p>
     </aside>
   </section>
 
-  <!-- ==================== 23. ENGINE: CLEAN + RETRY ==================== -->
+  <!-- ==================== 23. ENGINE: CLEAN ==================== -->
   <section class="slide" data-title="engine.py Clean">
     <p class="kicker">module 05 · engine.py</p>
-    <h2 class="h2">雜訊清理 + Rate Limit 重試</h2>
+    <h2 class="h2">雜訊清理 — clean_response()</h2>
     <div class="g2-lg">
       <div>
-        <div class="code-block" style="font-size:13px;line-height:1.6">
+        <div class="code-block" style="font-size:14px;line-height:1.6">
           <span class="comment"># clean_response() — 移除模型輸出中的 4 類雜訊</span>
           <span class="comment"># 類型 1：移除 <think>...</think> 推理區塊（模型內心 OS，不該讓使用者看到）</span>
           <span class="comment"># 類型 2：移除 "Round 1 [A: ...]" 這類多餘前綴</span>
           <span class="comment"># 類型 3：移除「好的，我明白你的意思」這類浪費版面的禮貌開場</span>
           <span class="comment"># 類型 4：Dialogue 模式——移除角色名、括號動作、敘述，只保留台詞</span></div>
         <p class="lede mt-s" style="font-size:14px">不同模型常輸出不需要的內容。clean_response() 統一清理，讓 terminal 顯示的是乾淨的發言內容。</p>
-        <div class="code-block mt-s" style="font-size:13px;line-height:1.6">
+      </div>
+      <div>
+        <div class="feature-row"><span class="num">🧹</span><div><b>清除推理雜訊</b><p class="dim">&lt;think&gt; 區塊是模型推理過程，不該讓觀眾看到。clean_response 直接移除。</p></div></div>
+        <div class="feature-row"><span class="num">🧹</span><div><b>移除多餘格式</b><p class="dim">"Round 1 [A: ...]" 這類前綴對 terminal 顯示是多餘的——觀眾已經知道誰在說話。</p></div></div>
+        <div class="feature-row"><span class="num">🧹</span><div><b>濃縮開場白</b><p class="dim">「好的，我明白你的意思」這類禮貌開場浪費版面。只要重點。</p></div></div>
+        <div class="feature-row"><span class="num">🎭</span><div><b>Dialogue 模式專屬</b><p class="dim">移除角色名、括號動作、敘述，只保留一句台詞。確保對話流暢。</p></div></div>
+      </div>
+    </div>
+    <aside class="notes">
+      <p>clean_response 處理四類雜訊：think 推理區塊、多餘前綴、禮貌開場、dialogue 多餘敘述。</p>
+      <p>下一頁看 rate limit 重試機制。</p>
+    </aside>
+  </section>
+
+  <!-- ==================== 23B. ENGINE: RETRY ==================== -->
+  <section class="slide" data-title="engine.py Retry">
+    <p class="kicker">module 05 · engine.py</p>
+    <h2 class="h2">Rate Limit 重試 — _complete_with_retries()</h2>
+    <div class="g2-lg">
+      <div>
+        <div class="code-block" style="font-size:14px;line-height:1.6">
           <span class="comment"># _complete_with_retries() — 聰明重試，不浪費時間</span>
           <span class="kw">if</span> attempts &gt;= self.rate_limit_retries:    <span class="comment"># 超過重試次數上限</span>
               <span class="kw">raise</span>                               <span class="comment"># 放棄，往上拋</span>
@@ -782,14 +942,14 @@
           <span class="comment"># 只有 HTTP 429 Too Many Requests 才重試</span></div>
       </div>
       <div>
-        <div class="feature-row"><span class="num" style="color:var(--good)">🧹</span><div><b>clean_response 的價值</b><p class="dim">&lt;think&gt; 區塊是推理過程，不該讓觀眾看到。「好的，我明白你的意思」這類開場白浪費版面。clean_response 讓發言內容更精煉。</p></div></div>
-        <div class="feature-row"><span class="num" style="color:var(--warn)">🔄</span><div><b>重試的判斷邏輯</b><p class="dim">只有 HTTP 429 Too Many Requests 才重試。如果是 401（API key 錯誤）或 400（請求格式錯誤），直接拋出——設定錯了重試也沒用。</p></div></div>
-        <div class="feature-row"><span class="num" style="color:var(--bad)">⚠️</span><div><b>非重試錯誤的處理</b><p class="dim">直接 raise 到上一層的 _run_rounds()，然後往上傳到 run()。run() 的 caller（cli.py）負責 catch 並顯示錯誤摘要給使用者。</p></div></div>
+        <div class="feature-row"><span class="num" style="color:var(--warn)">🔄</span><div><b>只重試 rate limit</b><p class="dim">只有 HTTP 429 Too Many Requests 才重試。401（API key 錯誤）或 400（請求格式錯誤）直接拋出——設定錯了重試也沒用。</p></div></div>
+        <div class="feature-row"><span class="num" style="color:var(--bad)">⚠️</span><div><b>非重試錯誤往上拋</b><p class="dim">直接 raise 到 _run_rounds()，再傳到 run()。cli.py 負責 catch 並顯示錯誤摘要給使用者。</p></div></div>
+        <div class="feature-row"><span class="num">📋</span><div><b>所有錯誤皆保存</b><p class="dim">某一輪模型呼叫失敗時，已產生的 transcript 全部保存。討論不會因為一次錯誤就消失。</p></div></div>
       </div>
     </div>
     <aside class="notes">
-      <p>clean_response 處理四類雜訊：think 推理區塊、多餘前綴、禮貌開場、dialogue 多餘敘述。</p>
       <p>_complete_with_retries 的判斷邏輯很重要——只有 rate limit 才重試。API key 錯了重試一百次也沒用，直接拋出讓使用者修正。</p>
+      <p>不管錯誤與否，已產生的 transcript 都會保存。</p>
     </aside>
   </section>
 
@@ -798,7 +958,7 @@
     <p class="kicker">module 06 · cli.py</p>
     <h2 class="h2">指令解析 + 設定流程</h2>
     <div class="g2-lg">
-      <div class="code-block" style="font-size:13px;line-height:1.6">
+      <div class="code-block" style="font-size:14px;line-height:1.6">
         <span class="comment"># main() — 程式的進入點，用 argparse 解析使用者輸入的指令</span>
         <span class="kw">def</span> <span class="fn">main</span>(argv):
             parser = <span class="fn">build_parser</span>()                 <span class="comment"># 建立指令解析器</span>
@@ -815,7 +975,7 @@
       <div>
         <div class="mod" style="margin-bottom:8px">
           <span class="mt" style="font-size:14px">支援的 CLI 指令</span>
-          <p class="md" style="font-size:12px"><b>promptstorm discussion</b> — 討論模式（主線）<br>
+          <p class="md" style="font-size:13px"><b>promptstorm discussion</b> — 討論模式（主線）<br>
           <b>promptstorm debate</b> — 辯論模式<br>
           <b>promptstorm dialogue</b> — 對話模式<br>
           <b>promptstorm setup</b> — 設定 API key 與模型</p>
@@ -831,13 +991,13 @@
     </aside>
   </section>
 
-  <!-- ==================== 25. CLI: SESSION ==================== -->
+  <!-- ==================== 26. CLI: SESSION ==================== -->
   <section class="slide" data-title="cli.py Session">
     <p class="kicker">module 06 · cli.py</p>
     <h2 class="h2"><span class="mono">run_session()</span> — 整場 session 的導演</h2>
     <div class="g2-lg">
       <div>
-        <div class="code-block" style="font-size:13px;line-height:1.6">
+        <div class="code-block" style="font-size:14px;line-height:1.6">
           <span class="comment"># run_session() — 整場 session 的導演，11 步串起所有模組</span>
           <span class="kw">def</span> <span class="fn">run_session</span>(mode_name):
               <span class="num"> 1</span> profile = <span class="fn">get_mode_profile</span>(mode_name)     <span class="comment"># 取得模式設定檔</span>
@@ -856,7 +1016,7 @@
         <div class="feature-row"><span class="num" style="color:var(--accent)">🎬</span><div><b>run_session() 做的事</b><p class="dim">取得 ModeProfile → 載入設定 → 取得 API key → 輸入角色主題 → 建立 Provider → 建立 Engine → 設定 callback → engine.run() → 控制迴圈 → 結論輸出。整場 session 全由它串聯。</p></div></div>
         <div class="mod mt-m">
           <span class="mt" style="font-size:14px">Callback 設定</span>
-          <p class="md" style="font-size:12px">CLI 在建立 engine 時傳入 callback：on_turn_start 印出回合標題，on_response 即時顯示模型文字，on_turn_end 印出分隔線與錯誤提示。</p>
+          <p class="md" style="font-size:13px">CLI 在建立 engine 時傳入 callback：on_turn_start 印出回合標題，on_response 即時顯示模型文字，on_turn_end 印出分隔線與錯誤提示。</p>
         </div>
       </div>
     </div>
@@ -880,7 +1040,7 @@
           <span class="mt">continue_from_control_choice()</span>
           <p class="md">把使用者選項轉成 engine 需要的參數。<br>Dialogue 模式特殊：如果使用者希望 B 更主動，發言順序變 B → A。</p>
         </div>
-        <div class="code-block" style="font-size:13px;line-height:1.7">
+        <div class="code-block" style="font-size:14px;line-height:1.7">
           <span class="comment"># Dialogue 模式的特殊 speaker 順序</span>
           <span class="kw">if</span> profile.name == <span class="str">"dialogue"</span> <span class="kw">and</span> choice == <span class="str">"B"</span>:  <span class="comment"># 使用者希望 B 更主動</span>
               <span class="kw">return</span> (<span class="str">"B"</span>, <span class="str">"A"</span>)  <span class="comment"># B 先發言，A 再接——Dialogue 獨有的互動順序</span></div>
@@ -904,7 +1064,7 @@
     <h2 class="h2">結論生成 + Fallback 保障</h2>
     <div class="g2-lg">
       <div>
-        <div class="code-block" style="font-size:13px;line-height:1.6">
+        <div class="code-block" style="font-size:14px;line-height:1.6">
           <span class="comment"># ConclusionWriter——根據 transcript 產出最終結論</span>
           <span class="kw">class</span> <span class="cls">ConclusionWriter</span>:
               <span class="kw">def</span> <span class="fn">generate_conclusion</span>(self):               <span class="comment"># 生成結論的主方法</span>
@@ -917,7 +1077,7 @@
                       messages=[...transcript...])         <span class="comment"># 整場討論的完整紀錄</span></div>
         <div class="mod mt-s">
           <span class="mt" style="font-size:14px;color:var(--warn)">build_fallback_conclusion()</span>
-          <p class="md" style="font-size:12px">report model 失敗時不崩潰。產出本地 fallback：說明錯誤原因 → 顯示 final state → 顯示完整 transcript。</p>
+          <p class="md" style="font-size:13px">report model 失敗時不崩潰。產出本地 fallback：說明錯誤原因 → 顯示 final state → 顯示完整 transcript。</p>
         </div>
       </div>
       <div>
@@ -925,7 +1085,7 @@
         <div class="feature-row"><span class="num" style="color:var(--bad)">🛡️</span><div><b>Fallback 的設計哲學</b><p class="dim">使用者花半小時討論的內容，不會因為最後一步 API 出錯而白費。不管 report model 怎麼掛，已產生的 debate 內容一定保得住。</p></div></div>
         <div class="mod mt-m" style="border-top-color:var(--good)">
           <span class="mt" style="font-size:14px">三種模式的 conclusion 差異</span>
-          <p class="md" style="font-size:12px">Discussion → Synthesis（整合觀點）。Debate → Conclusion with verdict（使用者選邊）。Dialogue → Summary（角色對話摘要）。這些差異來自 ModeProfile 的 conclusion 欄位。</p>
+          <p class="md" style="font-size:13px">Discussion → Synthesis（整合觀點）。Debate → Conclusion with verdict（使用者選邊）。Dialogue → Summary（角色對話摘要）。這些差異來自 ModeProfile 的 conclusion 欄位。</p>
         </div>
       </div>
     </div>
@@ -971,7 +1131,7 @@
     </div>
     <div class="deck-footer">
       <span class="mono">#q_and_a</span>
-      <span class="slide-number" data-current="32" data-total="32"></span>
+      <span class="slide-number" data-current="35" data-total="41"></span>
     </div>
     <aside class="notes">
       <p>到這邊今天的分享就結束了。</p>
@@ -984,7 +1144,7 @@
 
 </div>
 
-<div style="position:fixed;bottom:12px;left:12px;font-size:12px;color:rgba(88,94,105,0.4);z-index:100;pointer-events:none">
+<div style="position:fixed;bottom:12px;left:12px;font-size:13px;color:rgba(88,94,105,0.4);z-index:100;pointer-events:none">
   S 演講者模式 · T 切換主題 · ← → 翻頁 · F 全螢幕 · O 總覽 · R 重置計時
 </div>
 
