@@ -511,7 +511,7 @@ if attempts >= self.rate_limit_retries or not _is_rate_limit_error(error):
 
 - `<think>...</think>` 推理區塊
 - `Round 1 [A: ...]` 這種多餘前綴
-- 「好的，我明白你的意思了。」這類禮貌開場
+- 禮貌開場白（共 8 種）：「好的，我明白您的意思了。」「好的，我明白你的意思了。」「我明白您的意思了。」「我明白你的意思了。」「好的，」「好的。」「Sure,」「Sure.」
 - dialogue 模式中多餘的角色名、括號動作、整段敘事
 
 `clean_response()` 會清掉這些雜訊，讓 terminal 中顯示的是更乾淨的發言內容。
@@ -538,7 +538,7 @@ if attempts >= self.rate_limit_retries or not _is_rate_limit_error(error):
 
 ### transcript 格式化
 
-`_format_transcript()` 會把 `session.turns` 轉成純文字 transcript。例如：
+`format_transcript()`（定義在 `models.py`）會把 `session.turns` 轉成純文字 transcript。例如：
 
 ```text
 Round 1 [A: Point of View A] ...
@@ -546,7 +546,7 @@ Round 1 [B: Point of View B] ...
 Human input after Round 1: ...
 ```
 
-這份 transcript 會被放進下一次模型呼叫，也會被 conclusion writer 使用。
+`engine.py` 在每一輪呼叫它，將結果傳給模型作為上下文；`reporter.py` 也用它來產生結論。
 
 ## 十、終端機介面：`cli.py`
 

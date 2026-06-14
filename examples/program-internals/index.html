@@ -24,7 +24,7 @@
     </div>
     <div class="deck-footer">
       <span class="mono">#promptstorm #discussion #multillm</span>
-      <span class="slide-number" data-current="1" data-total="41"></span>
+      <span class="slide-number" data-current="1" data-total="35"></span>
     </div>
     <aside class="notes">
       <p>大家好，歡迎來到今天的技術分享。今天我們要深入解剖 PromptStorm CLI 的程式內部。</p>
@@ -542,40 +542,6 @@
   </section>
 
   <!-- ==================== 14. MODELS UTILITY ==================== -->
-  <section class="slide" data-title="models.py Utilities">
-    <p class="kicker">module 01 · models.py</p>
-    <h2 class="h2">工具函式 + Session ID 格式</h2>
-    <div class="g2-lg" style="grid-template-columns:1fr 1fr">
-      <div>
-        <div class="mod" style="margin-bottom:10px">
-          <span class="mt">normalize_verdict()</span>
-          <p class="md">把使用者最後的選擇標準化：A 和 B 保持不變，C / TIE / DRAW 統一視為 TIE。後面的 conclusion writer 不用處理多種輸入格式。</p>
-        </div>
-        <div class="code-block" style="font-size:14px;line-height:1.6">
-          <span class="comment"># 標準化使用者的最終選擇，統一格式供 conclusion writer 使用</span>
-          <span class="kw">def</span> <span class="fn">normalize_verdict</span>(raw_value: <span class="fn">str</span>) -> <span class="fn">str</span>:
-              value = raw_value.strip().upper()           <span class="comment"># 去除空白並轉大寫</span>
-              <span class="kw">if</span> value <span class="kw">in</span> {<span class="str">"A"</span>, <span class="str">"B"</span>}:                  <span class="comment"># A 或 B 保持原樣</span>
-                  <span class="kw">return</span> value
-              <span class="kw">if</span> value <span class="kw">in</span> {<span class="str">"C"</span>, <span class="str">"TIE"</span>, <span class="str">"DRAW"</span>}:          <span class="comment"># C / TIE / DRAW 統一為 TIE</span>
-                  <span class="kw">return</span> <span class="str">"TIE"</span>
-              <span class="kw">raise</span> <span class="cls">ValueError</span>(<span class="str">"Verdict must be A, B, or C."</span>)  <span class="comment"># 非預期輸入直接報錯</span></div>
-      </div>
-      <div>
-        <div class="mod" style="margin-bottom:10px">
-          <span class="mt">Session ID 格式</span>
-          <p class="md"><span class="mono">YYYYMMDD-HHMMSS-{8位UUID hex}</span><br>例如：<span class="mono">20260613-153022-a1b2c3d4</span></p>
-        </div>
-        <div class="feature-row"><span class="num" style="color:var(--accent-2)">📌</span><div><b>為什麼要這個格式？</b><p class="dim">時間戳記在前，方便排序與辨識 session。UUID 避免同秒多 session 衝突。除錯時一眼看出 session 是何時建立的。</p></div></div>
-        <div class="feature-row"><span class="num" style="color:var(--accent-2)">📌</span><div><b>status + error 欄位的作用</b><p class="dim">每個 turn 有自己的 status（ok / error）和 error message。後續除錯時可以精確定位哪一輪、哪個模型出了問題。</p></div></div>
-      </div>
-    </div>
-    <aside class="notes">
-      <p>工具函式 normalize_verdict——標準化使用者選擇。把 C、TIE、DRAW 統一為 TIE。</p>
-      <p>Session ID 格式 YYYYMMDD-HHMMSS-8位UUID hex。時間在前面方便排序，UUID 避免衝突。</p>
-      <p>DebateTurn 的 status 和 error 欄位不是裝飾——除錯時可以精確定位哪一輪、哪個模型出了問題。</p>
-    </aside>
-  </section>
 
   <!-- ==================== 15. CONFIG ==================== -->
   <section class="slide" data-title="config.py">
@@ -685,83 +651,10 @@
     </aside>
   </section>
 
-  <!-- ==================== 17B. MODES: COMPARISON ==================== -->
-  <section class="slide" data-title="modes.py Comparison">
-    <p class="kicker">module 03 · modes.py</p>
-    <h2 class="h2">三種模式 — 用途對照</h2>
-    <div class="grid g3 mt-m" style="gap:16px;margin-top:24px">
-      <div class="card card-accent" style="padding:18px 20px"><h4 style="font-size:16px">💬 Discussion</h4><p class="dim" style="font-size:14px">不同角度互補 → 收斂出更完整的答案</p></div>
-      <div class="card" style="padding:18px 20px;border-top-color:var(--bad)"><h4 style="font-size:16px;color:var(--bad)">⚔️ Debate</h4><p class="dim" style="font-size:14px">攻防反駁 → 測試論點強度</p></div>
-      <div class="card" style="padding:18px 20px;border-top-color:var(--accent-2)"><h4 style="font-size:16px;color:var(--accent-2)">🎭 Dialogue</h4><p class="dim" style="font-size:14px">角色扮演 → 情境對話</p></div>
-    </div>
-    <div class="bullets" style="margin-top:20px">
-      <li><b>Discussion 是主線</b> — 合作分析，兩個模型互補盲點，最終 synthesis 收斂完整答案。</li>
-      <li><b>Debate 是支線</b> — 攻防反駁，測試論點強度，最終使用者選邊或裁決。</li>
-      <li><b>Dialogue 是特殊用途</b> — 角色扮演情境對話，clean_response 會額外處理只保留台詞。</li>
-    </div>
-    <aside class="notes">
-      <p>三種模式的用途對照。Discussion 是主線——兩個模型合作。Debate 是攻防比較。Dialogue 是角色扮演。</p>
-      <p>Dialogue 還有一個額外限制：clean_response() 會特別處理 dialogue 模式，移除角色名和敘述，只保留一句台詞。</p>
-    </aside>
-  </section>
-
-  <!-- ==================== 19. MODES: LANG DETECT ==================== -->
-  <section class="slide" data-title="modes.py Lang">
-    <p class="kicker">module 03 · modes.py</p>
-    <h2 class="h2">語言偵測：自動判斷輸出語言</h2>
-    <div class="g2-lg" style="grid-template-columns:1fr 1fr">
-      <div>
-        <div class="code-block" style="font-size:14px;line-height:1.7">
-          <span class="comment"># 自動判斷輸出語言——確保模型用使用者輸入的語言回答</span>
-          <span class="kw">def</span> <span class="fn">detect_output_language</span>(
-              topic, human_input
-          ) -> <span class="fn">str</span>:
-              <span class="comment"># 規則 1：文字明確要求英文 → English</span>
-              <span class="comment"># 規則 2：文字明確要求中文 → Traditional Chinese</span>
-              <span class="comment"># 規則 3：中文字元比例高 → Traditional Chinese</span>
-              <span class="comment"># 規則 4：英文字母較多 → English</span></div>
-      </div>
-      <div>
-        <div class="mod" style="margin-bottom:8px">
-          <span class="mt">為什麼需要語言偵測？</span>
-          <p class="md">模型預設傾向用英文回應。但如果使用者用中文輸入主題，討論理應輸出中文。語言偵測確保模型回應貼近使用者輸入語言。</p>
-        </div>
-        <div class="feature-row"><span class="num" style="color:var(--good)">🌐</span><div><b>實作方式</b><p class="dim">先檢查文字是否明確指定語言（「用中文回答」），再按字符比例判斷。輕量、無外部依賴。</p></div></div>
-      </div>
-    </div>
-    <aside class="notes">
-      <p>語言偵測函式 detect_output_language() 解決一個實際問題：模型預設傾向用英文回應。</p>
-      <p>如果使用者用中文輸入主題，討論理應輸出中文。偵測方式分兩層：先看是否有明確語言要求，再看字符比例。</p>
-    </aside>
-  </section>
 
   <!-- ==================== 19. PROVIDER: PROTOCOL ==================== -->
-  <section class="slide" data-title="provider.py Protocol">
-    <p class="kicker">module 04 · provider.py</p>
-    <h2 class="h2"><span class="mono">ModelProvider</span> Protocol — 抽象介面</h2>
-    <div class="g2-lg" style="grid-template-columns:1fr 1fr">
-      <div class="code-block" style="font-size:14px;line-height:1.7">
-        <span class="comment"># ModelProvider Protocol——只要實作 complete() 就能當成 provider 使用</span>
-        <span class="kw">class</span> <span class="cls">ModelProvider</span>(<span class="fn">Protocol</span>):          <span class="comment"># Python 結構子型別，不需繼承基底類別</span>
-            <span class="kw">def</span> <span class="fn">complete</span>(
-                self,
-                model: <span class="fn">str</span>,                    <span class="comment"># 要呼叫的模型名稱</span>
-                messages: <span class="fn">Sequence</span>[dict],        <span class="comment"># 對話歷史 + 系統提示</span>
-            ) -> <span class="cls">ModelResponse</span>: ...             <span class="comment"># 回傳統一格式的 ModelResponse</span></div>
-      <div>
-        <div class="mod" style="margin-bottom:8px">
-          <span class="mt">結構子型別（Structural Subtyping）</span>
-          <p class="md">不需要繼承基底類別，不需要註冊。任何類別只要有 complete() 方法且簽章吻合，engine 就能用。</p>
-        </div>
-        <div class="feature-row"><span class="num" style="color:var(--good)">✅</span><div><b>測試性</b><p class="dim">測試時 inject mock provider，直接回傳固定 ModelResponse。不需真實 API key，不需網路。</p></div></div>
-        <div class="feature-row"><span class="num" style="color:var(--good)">✅</span><div><b>可替換性</b><p class="dim">明天想換 Anthropic？寫一個 AnthropicProvider 實作 complete() 就好。engine、cli 完全不用改。</p></div></div>
-      </div>
-    </div>
-    <aside class="notes">
-      <p>provider.py 定義了 ModelProvider Protocol。這是 Python 的結構子型別——只要有 complete() 方法就能用。</p>
-      <p>最大的好處是測試性。寫測試時 inject 一個 mock provider，不用真的打 API。</p>
-    </aside>
-  </section>
+
+  <!-- ==================== 19. PROVIDER: PROTOCOL ==================== -->
 
   <!-- ==================== 20. PROVIDER: VERCEL ==================== -->
   <section class="slide" data-title="provider.py Vercel">
@@ -928,68 +821,6 @@
   </section>
 
   <!-- ==================== 23B. ENGINE: RETRY ==================== -->
-  <section class="slide" data-title="engine.py Retry">
-    <p class="kicker">module 05 · engine.py</p>
-    <h2 class="h2">Rate Limit 重試 — _complete_with_retries()</h2>
-    <div class="g2-lg">
-      <div>
-        <div class="code-block" style="font-size:14px;line-height:1.6">
-          <span class="comment"># _complete_with_retries() — 聰明重試，不浪費時間</span>
-          <span class="kw">if</span> attempts &gt;= self.rate_limit_retries:    <span class="comment"># 超過重試次數上限</span>
-              <span class="kw">raise</span>                               <span class="comment"># 放棄，往上拋</span>
-          <span class="kw">if not</span> <span class="fn">_is_rate_limit_error</span>(error):          <span class="comment"># 不是 rate limit 錯誤</span>
-              <span class="kw">raise</span>  <span class="comment"># 非 rate limit 直接拋出（API key 錯了重試也沒用）</span>
-          <span class="comment"># 只有 HTTP 429 Too Many Requests 才重試</span></div>
-      </div>
-      <div>
-        <div class="feature-row"><span class="num" style="color:var(--warn)">🔄</span><div><b>只重試 rate limit</b><p class="dim">只有 HTTP 429 Too Many Requests 才重試。401（API key 錯誤）或 400（請求格式錯誤）直接拋出——設定錯了重試也沒用。</p></div></div>
-        <div class="feature-row"><span class="num" style="color:var(--bad)">⚠️</span><div><b>非重試錯誤往上拋</b><p class="dim">直接 raise 到 _run_rounds()，再傳到 run()。cli.py 負責 catch 並顯示錯誤摘要給使用者。</p></div></div>
-        <div class="feature-row"><span class="num">📋</span><div><b>所有錯誤皆保存</b><p class="dim">某一輪模型呼叫失敗時，已產生的 transcript 全部保存。討論不會因為一次錯誤就消失。</p></div></div>
-      </div>
-    </div>
-    <aside class="notes">
-      <p>_complete_with_retries 的判斷邏輯很重要——只有 rate limit 才重試。API key 錯了重試一百次也沒用，直接拋出讓使用者修正。</p>
-      <p>不管錯誤與否，已產生的 transcript 都會保存。</p>
-    </aside>
-  </section>
-
-  <!-- ==================== 24. CLI: MAIN + SETUP ==================== -->
-  <section class="slide" data-title="cli.py Main">
-    <p class="kicker">module 06 · cli.py</p>
-    <h2 class="h2">指令解析 + 設定流程</h2>
-    <div class="g2-lg">
-      <div class="code-block" style="font-size:14px;line-height:1.6">
-        <span class="comment"># main() — 程式的進入點，用 argparse 解析使用者輸入的指令</span>
-        <span class="kw">def</span> <span class="fn">main</span>(argv):
-            parser = <span class="fn">build_parser</span>()                 <span class="comment"># 建立指令解析器</span>
-            args = parser.parse_args(argv)            <span class="comment"># 解析指令與參數</span>
-
-        <span class="comment"># build_parser() — 從 SESSION_MODE_NAMES 自動建立子指令</span>
-        <span class="comment"># 未來 modes.py 加新模式，CLI 自動支援，不用改 CLI 程式碼</span>
-
-        <span class="comment"># run_setup() — 使用 getpass 保護 API key（輸入時不顯示在終端機上）</span>
-        <span class="kw">def</span> <span class="fn">run_setup</span>():
-            api_key = <span class="fn">getpass.getpass</span>(<span class="str">"Vercel AI Gateway API key: "</span>)  <span class="comment"># 隱密輸入</span>
-            <span class="comment"># 讓使用者選擇 Player A、Player B、Report model</span>
-            <span class="comment"># 最後呼叫 save_api_key() 寫入設定檔</span></div>
-      <div>
-        <div class="mod" style="margin-bottom:8px">
-          <span class="mt" style="font-size:14px">支援的 CLI 指令</span>
-          <p class="md" style="font-size:13px"><b>promptstorm discussion</b> — 討論模式（主線）<br>
-          <b>promptstorm debate</b> — 辯論模式<br>
-          <b>promptstorm dialogue</b> — 對話模式<br>
-          <b>promptstorm setup</b> — 設定 API key 與模型</p>
-        </div>
-        <div class="feature-row"><span class="num" style="color:var(--good)">🔐</span><div><b>getpass 保護 API key</b><p class="dim">getpass.getpass() 輸入時不會顯示在 terminal 上，避免 shoulder surfing。</p></div></div>
-        <div class="feature-row"><span class="num" style="color:var(--accent)">🧩</span><div><b>自動擴充 CLI 指令</b><p class="dim">build_parser() 從 SESSION_MODE_NAMES 自動建立子指令。未來 modes.py 加新模式，CLI 自動支援。</p></div></div>
-      </div>
-    </div>
-    <aside class="notes">
-      <p>cli.py 的 main() 用 argparse 解析指令。支援 discussion / debate / dialogue / setup。</p>
-      <p>build_parser() 會從 SESSION_MODE_NAMES 自動建立指令，所以未來加新模式不用改 CLI 程式碼。</p>
-      <p>run_setup() 用 getpass.getpass() 保護 API key——輸入時不會顯示在螢幕上。</p>
-    </aside>
-  </section>
 
   <!-- ==================== 26. CLI: SESSION ==================== -->
   <section class="slide" data-title="cli.py Session">
@@ -1027,37 +858,6 @@
   </section>
 
   <!-- ==================== 26. CLI: CONTROL LOOP ==================== -->
-  <section class="slide" data-title="cli.py Control">
-    <p class="kicker">module 06 · cli.py</p>
-    <h2 class="h2">控制迴圈 + Dialogue 特殊行為</h2>
-    <div class="g2-lg">
-      <div>
-        <div class="mod" style="margin-bottom:10px">
-          <span class="mt">run_control_loop()</span>
-          <p class="md">使用者選 A/B/R → 問要繼續幾回合 → 呼叫 continue_debate() 在原 session 追加 → 回到選單。<br>選 I → 輸入補充 → 子選單（Enter 繼續 1 回合／A/B/R/O 改變方向）。<br>選 O → 輸出結論。</p>
-        </div>
-        <div class="mod" style="margin-bottom:10px">
-          <span class="mt">continue_from_control_choice()</span>
-          <p class="md">把使用者選項轉成 engine 需要的參數。<br>Dialogue 模式特殊：如果使用者希望 B 更主動，發言順序變 B → A。</p>
-        </div>
-        <div class="code-block" style="font-size:14px;line-height:1.7">
-          <span class="comment"># Dialogue 模式的特殊 speaker 順序</span>
-          <span class="kw">if</span> profile.name == <span class="str">"dialogue"</span> <span class="kw">and</span> choice == <span class="str">"B"</span>:  <span class="comment"># 使用者希望 B 更主動</span>
-              <span class="kw">return</span> (<span class="str">"B"</span>, <span class="str">"A"</span>)  <span class="comment"># B 先發言，A 再接——Dialogue 獨有的互動順序</span></div>
-      </div>
-      <div>
-        <div class="feature-row"><span class="num" style="color:var(--accent-2)">🎭</span><div><b>Dialogue 的兩種特殊行為</b><p class="dim">1. 每次只輸出一句台詞（clean_response 強制）<br>2. 使用者可讓 B 更主動 → B 先發言再換 A</p></div></div>
-        <div class="feature-row"><span class="num" style="color:var(--warn)">⚠️</span><div><b>錯誤摘要：summarize_model_error()</b><p class="dim">把太長的 API 錯誤訊息縮短。特別處理 429 rate limit 提示。錯誤要有用，但不能洗滿 terminal。</p></div></div>
-        <div class="feature-row"><span class="num" style="color:var(--accent)">🎨</span><div><b>ANSI 終端機顏色</b><p class="dim"><span style="color:#22c2e0">CYAN</span> = Player A · <span style="color:#b47aff">MAGENTA</span> = Player B · BOLD = 標題 · 分隔線 = 回合切換</p></div></div>
-      </div>
-    </div>
-    <aside class="notes">
-      <p>控制迴圈的細節比表面看到的更豐富。選 I 後的子選單、dialogue 的特殊 speaker 順序、ANSI 顏色，都是 CLI 的使用體驗細節。</p>
-      <p>Dialogue 模式如果使用者希望 B 更主動，發言順序會變成 B → A。這是 dialogue 獨有的。</p>
-      <p>ANSI 顏色：CYAN 代表 Player A，MAGENTA 代表 Player B，視覺上立刻區分雙方。</p>
-    </aside>
-  </section>
-
   <!-- ==================== 27. REPORTER ==================== -->
   <section class="slide" data-title="reporter.py">
     <p class="kicker">module 07 · reporter.py</p>
@@ -1142,17 +942,15 @@
   <section class="slide center tc" data-title="Thanks">
     <div>
       <h1 class="h1 anim-fade-up" data-anim="fade-up" style="font-size:100px;line-height:1"><span class="gradient-text">Thanks</span></h1>
-      <p class="lede" style="margin:16px auto 0;max-width:500px">從 vibe coding 到模組化設計 — 好的架構讓想法走得更遠。</p>
       <div class="divider-accent" style="margin:24px auto"></div>
       <div class="row mt-l" style="justify-content:center;gap:40px">
         <div class="dim"><b>PromptStorm CLI</b></div>
         <div class="dim">讓兩個模型討論出更好的結果</div>
       </div>
-      <p class="mt-l" style="font-size:15px;color:var(--text-3)">按 <span class="mono">S</span> 回顧逐字稿 · 按 <span class="mono">T</span> 切換主題</p>
     </div>
     <div class="deck-footer">
       <span class="mono">#q_and_a</span>
-      <span class="slide-number" data-current="35" data-total="41"></span>
+      <span class="slide-number" data-current="28" data-total="35"></span>
     </div>
     <aside class="notes">
       <p>到這邊今天的分享就結束了。</p>
