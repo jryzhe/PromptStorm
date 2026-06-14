@@ -1108,12 +1108,33 @@
     </aside>
   </section>
 
-  <!-- ==================== 29. REFLECTION ==================== -->
-  <section class="slide" data-title="Reflection">
-    <p class="kicker">心得</p>
-    <h2 class="h2" style="opacity:0.3;text-align:center;margin-top:120px">（暫留）</h2>
+  <!-- ==================== 29. REFLECTION 01 ==================== -->
+  <section class="slide" data-title="心得一">
+    <p class="kicker">心得 · 01</p>
+    <h2 class="h2">從交易機器人到 <span class="accent">PromptStorm</span></h2>
+    <div style="max-width:820px;margin-top:28px">
+      <p style="font-size:17px;line-height:1.8;color:var(--text-2)">一開始，我們團隊野心勃勃，想打造一款能帶來「最佳年化報酬率」的自動交易機器人。但很快我們就嚐到了苦頭。因為缺乏真實的金融市場經驗，「追求高報酬」對我們而言變成了一個極度空洞的目標。無論我們怎麼用歷史數據回測、反覆調整參數，市場裡不可控的因素實在太多。專案陷入了死胡同。</p>
+      <p style="font-size:17px;line-height:1.8;color:var(--text-2);margin-top:16px">這場挫敗讓我們停下來反思：與其追逐一個不熟悉的虛幻數字，不如回頭去解決生活中真正遇到的痛點。我們觀察到很多人會手動把一個 AI 的結論貼給另一個 AI 反駁——<b class="accent">既然大家都在手動做這件事，為什麼不乾脆打造一個系統自動化？</b></p>
+      <p style="font-size:17px;line-height:1.8;color:var(--text-2);margin-top:16px">這次的跌跌撞撞讓我學到最深刻的一課：<b class="good">最值錢的從來不是工具本身，而是你的「核心想法」</b>。如果目標空洞，AI 只會放大你的迷茫；但當你精準抓到一個真實的痛點時，AI 就能成為解決問題的最強助力。</p>
+    </div>
     <aside class="notes">
-      <p>這頁先空著，之後再補心得內容。</p>
+      <p>第一段心得：從失敗的交易機器人專案中轉向，找到真實痛點。核心想法比工具更重要。</p>
+    </aside>
+  </section>
+
+  <!-- ==================== 30. REFLECTION 02 ==================== -->
+  <section class="slide" data-title="心得二">
+    <p class="kicker">心得 · 02</p>
+    <h2 class="h2">流程設計比 Prompt 更關鍵</h2>
+    <div style="max-width:820px;margin-top:28px">
+      <p style="font-size:17px;line-height:1.8;color:var(--text-2)">做 PromptStorm 的過程讓我發現，這個專案不只是「讓兩個 AI 聊天」，而是比較像在做一個小型的對話系統。</p>
+      <p style="font-size:17px;line-height:1.8;color:var(--text-2);margin-top:16px">一開始以為重點是 prompt，但實際做下去才知道，<b class="accent">真正重要的是「流程設計」</b>：要怎麼讓 A、B 兩個模型輪流發言、怎麼把過去對話保存起來、怎麼讓使用者可以中途插手改方向，這些比單純寫 prompt 更關鍵。</p>
+      <p style="font-size:17px;line-height:1.8;color:var(--text-2);margin-top:16px">另外也學到模型其實很容易跑掉，所以需要額外做整理和控制，例如<b class="accent-2">清理輸出、統一格式、把對話記錄整理成 transcript</b>，才能讓整體討論變穩定。</p>
+      <p style="font-size:17px;line-height:1.8;color:var(--text-2);margin-top:16px">最有感的是 CLI 不只是輸入輸出工具，而是像一個<b class="good">「主持人介面」</b>，使用者可以決定要支持哪一方、要不要繼續、或直接要求結論，整個互動變得更有控制感。</p>
+      <p style="font-size:17px;line-height:1.8;color:var(--text-2);margin-top:16px">總結來說，<b class="accent">AI 應用的重點不是模型本身，而是怎麼設計一個讓模型可以好好合作的系統。</b></p>
+    </div>
+    <aside class="notes">
+      <p>第二段心得：流程設計比 prompt 更關鍵。系統設計 > 模型本身。</p>
     </aside>
   </section>
 
